@@ -6,6 +6,7 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { AppError } from '../errors.js';
 import { logger } from '../logger.js';
+import { classifyDbError } from '../utils/domain-errors.js';
 import { sha256 } from '../utils/hash.js';
 
 /** 404 for unknown API routes, same envelope shape. */
@@ -38,7 +39,6 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
   const kind = typeof error === 'object' && error !== null && 'type' in error ? error.type : undefined;
   if (kind === 'entity.parse.failed' || kind === 'entity.too.large') {
     res.status(kind === 'entity.too.large' ? 413 : 400).json({ success: false,
@@ -46,8 +46,8 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
       error: { code: 'VALIDATION_ERROR' } });
     return;
   }
-  const mapped = code === 'P2002' || code === '23505' ? 409 :
-    code === 'P2025' ? 404 : code === 'P2003' || code === '23503' ? 400 : undefined;
+  const dbKind = classifyDbError(error);
+  const mapped = dbKind === 'unique' ? 409 : dbKind === 'not-found' ? 404 : dbKind === 'foreign-key' ? 400 : undefined;
   if (mapped) {
     res.status(mapped).json({ success: false, message: mapped === 409 ? 'Resource already exists' :
       mapped === 404 ? 'Resource not found' : 'Invalid reference',

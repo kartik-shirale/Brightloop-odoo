@@ -58,6 +58,16 @@ const envSchema = z.object({
   EMAILJS_TEMPLATE_ID: z.string().min(1),
   EMAILJS_PUBLIC_KEY: z.string().min(1),
   EMAILJS_PRIVATE_KEY: z.string().min(1),
+  /** Optional: without it, sending an invoice returns 503 DELIVERY_FAILED. */
+  EMAILJS_INVOICE_TEMPLATE_ID: z.preprocess((v) => v === '' ? undefined : v, z.string().min(1).optional()),
+
+  /** Base URL of the customer portal, used in invoice emails. */
+  APP_PUBLIC_URL: z.preprocess((v) => v === '' ? undefined : v, z.url().default('http://localhost:3000')),
+  DEFAULT_CURRENCY: z.preprocess((v) => v === '' ? undefined : v, z.string().min(1).default('INR')),
+  /** Company details printed on invoices. */
+  COMPANY_NAME: z.preprocess((v) => v === '' ? undefined : v, z.string().min(1).default('Brightloop')),
+  COMPANY_ADDRESS: z.string().default(''),
+  COMPANY_TAX_ID: z.string().default(''),
 
   /** Seed credentials for the default admin (role ADMIN, pre-verified). */
   ADMIN_EMAIL: z.preprocess((v) => v === '' ? undefined : v, z.email().toLowerCase().optional()),

@@ -26,22 +26,40 @@ import { SequencesRepository } from './modules/sequences/sequences.repository.js
 import { SequencesService } from './modules/sequences/sequences.service.js';
 // --- end module imports: sequences ---
 // --- module imports: taxes (M1) ---
+import { TaxesRepository } from './modules/taxes/taxes.repository.js';
+import { TaxesService } from './modules/taxes/taxes.service.js';
 // --- end module imports: taxes ---
 // --- module imports: payment-terms (M2) ---
+import { PaymentTermsRepository } from './modules/payment-terms/payment-terms.repository.js';
+import { PaymentTermsService } from './modules/payment-terms/payment-terms.service.js';
 // --- end module imports: payment-terms ---
 // --- module imports: products (M3) ---
+import { ProductsRepository } from './modules/products/products.repository.js';
+import { ProductsService } from './modules/products/products.service.js';
 // --- end module imports: products ---
 // --- module imports: staff (M4) ---
+import { StaffRepository } from './modules/staff/staff.repository.js';
+import { StaffService } from './modules/staff/staff.service.js';
 // --- end module imports: staff ---
 // --- module imports: customers (M5) ---
+import { CustomersRepository } from './modules/customers/customers.repository.js';
+import { CustomersService } from './modules/customers/customers.service.js';
 // --- end module imports: customers ---
 // --- module imports: plans (M6) ---
+import { PlansRepository } from './modules/plans/plans.repository.js';
+import { PlansService } from './modules/plans/plans.service.js';
 // --- end module imports: plans ---
 // --- module imports: discounts (M7) ---
+import { DiscountsRepository } from './modules/discounts/discounts.repository.js';
+import { DiscountsService } from './modules/discounts/discounts.service.js';
 // --- end module imports: discounts ---
 // --- module imports: quotation-templates (M8) ---
+import { QuotationTemplatesRepository } from './modules/quotation-templates/quotation-templates.repository.js';
+import { QuotationTemplatesService } from './modules/quotation-templates/quotation-templates.service.js';
 // --- end module imports: quotation-templates ---
 // --- module imports: subscriptions (M9) ---
+import { SubscriptionsRepository } from './modules/subscriptions/subscriptions.repository.js';
+import { SubscriptionsService } from './modules/subscriptions/subscriptions.service.js';
 // --- end module imports: subscriptions ---
 // --- module imports: invoices (M10) ---
 // --- end module imports: invoices ---
@@ -67,22 +85,31 @@ export interface AppServices {
   readonly sequencesService: SequencesService;
   // --- end module services: sequences ---
   // --- module services: taxes (M1) ---
+  readonly taxesService: TaxesService;
   // --- end module services: taxes ---
   // --- module services: payment-terms (M2) ---
+  readonly paymentTermsService: PaymentTermsService;
   // --- end module services: payment-terms ---
   // --- module services: products (M3) ---
+  readonly productsService: ProductsService;
   // --- end module services: products ---
   // --- module services: staff (M4) ---
+  readonly staffService: StaffService;
   // --- end module services: staff ---
   // --- module services: customers (M5) ---
+  readonly customersService: CustomersService;
   // --- end module services: customers ---
   // --- module services: plans (M6) ---
+  readonly plansService: PlansService;
   // --- end module services: plans ---
   // --- module services: discounts (M7) ---
+  readonly discountsService: DiscountsService;
   // --- end module services: discounts ---
   // --- module services: quotation-templates (M8) ---
+  readonly quotationTemplatesService: QuotationTemplatesService;
   // --- end module services: quotation-templates ---
   // --- module services: subscriptions (M9) ---
+  readonly subscriptionsService: SubscriptionsService;
   // --- end module services: subscriptions ---
   // --- module services: invoices (M10) ---
   // --- end module services: invoices ---
@@ -134,22 +161,42 @@ export function buildServices(): AppServices {
   const sequencesService = new SequencesService(new SequencesRepository());
   // --- end module wiring: sequences ---
   // --- module wiring: taxes (M1) ---
+  const taxesService = new TaxesService(new TaxesRepository(), auditService);
   // --- end module wiring: taxes ---
   // --- module wiring: payment-terms (M2) ---
+  const paymentTermsService = new PaymentTermsService(new PaymentTermsRepository(), auditService);
   // --- end module wiring: payment-terms ---
   // --- module wiring: products (M3) ---
+  const productsService = new ProductsService(new ProductsRepository(), auditService);
   // --- end module wiring: products ---
   // --- module wiring: staff (M4) ---
+  const staffService = new StaffService(new StaffRepository(), auditService);
   // --- end module wiring: staff ---
   // --- module wiring: customers (M5) ---
+  const customersService = new CustomersService(new CustomersRepository(), auditService);
   // --- end module wiring: customers ---
   // --- module wiring: plans (M6) ---
+  const plansService = new PlansService(new PlansRepository(), auditService);
   // --- end module wiring: plans ---
   // --- module wiring: discounts (M7) ---
+  const discountsService = new DiscountsService(new DiscountsRepository(), auditService);
   // --- end module wiring: discounts ---
   // --- module wiring: quotation-templates (M8) ---
+  const quotationTemplatesService = new QuotationTemplatesService(new QuotationTemplatesRepository(), auditService, productsService, plansService);
   // --- end module wiring: quotation-templates ---
   // --- module wiring: subscriptions (M9) ---
+  const subscriptionsService = new SubscriptionsService(
+    new SubscriptionsRepository(),
+    auditService,
+    sequencesService,
+    customersService,
+    productsService,
+    taxesService,
+    paymentTermsService,
+    plansService,
+    quotationTemplatesService,
+    discountsService,
+  );
   // --- end module wiring: subscriptions ---
   // --- module wiring: invoices (M10) ---
   // --- end module wiring: invoices ---
@@ -175,22 +222,31 @@ export function buildServices(): AppServices {
     sequencesService,
     // --- end module services return: sequences ---
     // --- module services return: taxes (M1) ---
+    taxesService,
     // --- end module services return: taxes ---
     // --- module services return: payment-terms (M2) ---
+    paymentTermsService,
     // --- end module services return: payment-terms ---
     // --- module services return: products (M3) ---
+    productsService,
     // --- end module services return: products ---
     // --- module services return: staff (M4) ---
+    staffService,
     // --- end module services return: staff ---
     // --- module services return: customers (M5) ---
+    customersService,
     // --- end module services return: customers ---
     // --- module services return: plans (M6) ---
+    plansService,
     // --- end module services return: plans ---
     // --- module services return: discounts (M7) ---
+    discountsService,
     // --- end module services return: discounts ---
     // --- module services return: quotation-templates (M8) ---
+    quotationTemplatesService,
     // --- end module services return: quotation-templates ---
     // --- module services return: subscriptions (M9) ---
+    subscriptionsService,
     // --- end module services return: subscriptions ---
     // --- module services return: invoices (M10) ---
     // --- end module services return: invoices ---
