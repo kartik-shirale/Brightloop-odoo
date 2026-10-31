@@ -142,3 +142,19 @@ export interface ListUsersQueryDto {
   createdTo?: string;
 }
 export interface UserStatsDto { total: number; verified: number; unverified: number; admins: number }
+
+/** Request naming used by new modules; existing *Dto names remain compatible. */
+export type RegisterRequest = RegisterDto;
+export type LoginRequest = LoginDto;
+export type VerifyOtpRequest = VerifyOtpDto;
+export type ResendOtpRequest = ResendOtpDto;
+export type ForgotPasswordRequest = ForgotPasswordDto;
+export type VerifyResetOtpRequest = VerifyOtpDto;
+export type ResetPasswordRequest = ResetPasswordDto;
+export type RefreshRequest = RefreshDto;
+export type LogoutRequest = LogoutDto;
+export type ListSessionsQuery = ListSessionsQueryDto;
+export type UpdateMeRequest = UpdateMeDto;
+export type ChangePasswordRequest = ChangePasswordDto;
+/** The existing users API uses `order`, unlike new modules' `sortOrder`. */
+export type ListUsersQuery = ListUsersQueryDto;
