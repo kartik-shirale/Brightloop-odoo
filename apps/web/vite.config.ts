@@ -16,8 +16,10 @@ export default defineConfig({
     port: 3000,
     proxy: {
       // Forward API calls to the core backend during development
+      // 127.0.0.1, not localhost: on Windows localhost resolves to ::1 first, which can hit
+      // another process on 3001 instead of the IPv4 core server.
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://127.0.0.1:3001",
         changeOrigin: true,
       },
     },

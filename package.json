@@ -18,7 +18,10 @@
     "test": "bun run --filter '@brightloop/shared' test && bun run --filter '@odoo/core' test",
     "redis:up": "docker compose up -d --wait redis",
     "redis:down": "docker compose stop redis",
-    "redis:logs": "docker compose logs -f redis"
+    "redis:logs": "docker compose logs -f redis",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose stop postgres",
+    "db:logs": "docker compose logs -f postgres"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
