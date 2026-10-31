@@ -4,12 +4,14 @@ import { App } from "./App";
 import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { ThemeProvider } from "./context/theme-context";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <TooltipProvider>
-
-    <App />
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="system">
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
+    </ThemeProvider>
   </StrictMode>
 );

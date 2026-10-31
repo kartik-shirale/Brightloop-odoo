@@ -1,15 +1,7 @@
-import { Link,NavLink,Outlet,useLocation } from 'react-router-dom';
-import { Layers,LogOut,LayoutDashboard,Users,Receipt,Package,BarChart3,Settings,Repeat } from 'lucide-react';
-import { SidebarProvider,Sidebar,SidebarHeader,SidebarContent,SidebarGroup,SidebarGroupLabel,SidebarMenu,SidebarMenuItem,SidebarMenuButton,SidebarFooter,SidebarInset,SidebarTrigger } from '@/components/ui/sidebar';
-import { Breadcrumb,BreadcrumbList,BreadcrumbItem,BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { Button } from '@/components/ui/button';
-import { Avatar,AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { STAFF_NAVIGATION } from '@/constants/navigation';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { useLogout } from '@/hooks/auth/use-logout';
-export function DashboardLayout():React.JSX.Element {
- const {user,hasRole}=useAuth();const {logout,isLoading}=useLogout();const location=useLocation();
- const groups=[...new Set(STAFF_NAVIGATION.map(item=>item.group))];const icons={Overview:LayoutDashboard,Sales:Users,Billing:Receipt,Reports:BarChart3,Catalog:Package,Admin:Settings};
- return <SidebarProvider><Sidebar><SidebarHeader className="px-5 py-6"><Link to="/dashboard" className="flex items-center gap-3 text-xl font-semibold"><span className="rounded-xl bg-primary p-2 text-primary-foreground"><Layers className="size-5"/></span>Brightloop<span className="ml-auto size-2 rounded-full bg-primary"/></Link><p className="mt-2 text-xs text-muted-foreground">Subscription management</p></SidebarHeader><SidebarContent>{groups.map(group=>{const items=STAFF_NAVIGATION.filter(item=>item.group===group&&hasRole(...item.allowedRoles));const Icon=icons[group];return items.length?<SidebarGroup key={group}><SidebarGroupLabel>{group}</SidebarGroupLabel><SidebarMenu>{items.map(item=><SidebarMenuItem key={item.href}><SidebarMenuButton isActive={location.pathname===item.href} render={<NavLink to={item.href}/> }><Icon/><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></SidebarGroup>:null;})}</SidebarContent><SidebarFooter className="border-t p-4"><Link className="mb-2 text-xs text-muted-foreground hover:underline" to="/account">Account security</Link><div className="flex items-center gap-3"><Avatar><AvatarFallback>{user?.name.slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{user?.name}</p><p className="text-xs text-muted-foreground">{user?.role}</p></div><Button size="icon" variant="ghost" onClick={logout} disabled={isLoading} aria-label="Sign out"><LogOut className="size-4"/></Button></div></SidebarFooter></Sidebar><SidebarInset><header className="flex h-16 items-center gap-4 border-b px-6"><SidebarTrigger/><Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbPage>{STAFF_NAVIGATION.find(item=>location.pathname.startsWith(item.href))?.label??'Workspace'}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb><div className="ml-auto flex items-center gap-2"><Repeat className="size-3 text-muted-foreground"/><span className="text-xs text-muted-foreground">Recurring business, simplified</span><Badge variant="outline">{user?.role}</Badge></div></header><main className="mx-auto w-full max-w-[1500px] flex-1 bg-muted/20 p-5 md:p-8"><Outlet/></main><footer className="border-t px-8 py-4 text-xs text-muted-foreground">Brightloop · Your subscriptions, connected.</footer></SidebarInset></SidebarProvider>;
+import { AppShell } from '@/components/global/app-shell';
+import { STAFF_ACCOUNT_LINKS, STAFF_NAVIGATION } from '@/constants/navigation';
+import { ROUTES } from '@/constants/routes';
+
+export function DashboardLayout(): React.JSX.Element {
+  return <AppShell home={ROUTES.DASHBOARD} groups={STAFF_NAVIGATION} accountLinks={STAFF_ACCOUNT_LINKS} />;
 }

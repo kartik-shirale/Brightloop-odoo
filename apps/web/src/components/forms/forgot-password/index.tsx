@@ -22,7 +22,7 @@ export function ForgotPasswordForm({ onSent }: ForgotPasswordFormProps): React.J
 
   const { submit, isLoading } = useForgotPassword(onSent, form.setError);
 
-  return <><FormHeading eyebrow="LET’S GET YOU BACK IN" title="Forgot your password?" description="It happens. Enter your email and we’ll send you a reset code." />
+  return <><FormHeading title="Reset your password" description="Enter your email and we will send you a 6-digit reset code." />
 
     <Form {...form}><form onSubmit={form.handleSubmit(submit)} className="space-y-6" noValidate>
 

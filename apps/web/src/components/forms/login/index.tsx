@@ -24,7 +24,7 @@ export function LoginForm(): React.JSX.Element {
 
   const { submit, isLoading } = useLogin(form.setError);
 
-  return <><FormHeading eyebrow="YOUR WORKSPACE AWAITS" title="Welcome back." description="A familiar place to pick up where you left off." />
+  return <><FormHeading title="Sign in" description="Use the email and password for your Brightloop account." />
 
     <Form {...form}><form onSubmit={form.handleSubmit(submit)} className="space-y-5" noValidate>
 

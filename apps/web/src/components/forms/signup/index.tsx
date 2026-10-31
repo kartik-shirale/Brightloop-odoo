@@ -24,7 +24,7 @@ export function SignupForm(): React.JSX.Element {
 
   const { submit, isLoading } = useSignup(form.setError);
 
-  return <><FormHeading eyebrow="MAKE ROOM FOR WHAT’S NEXT" title="Your next chapter." description="Create your account. We’ll send a code to verify your email." />
+  return <><FormHeading title="Create an account" description="We will email you a code to verify your address." />
 
     <Form {...form}><form onSubmit={form.handleSubmit(submit)} className="space-y-4" noValidate>
 
