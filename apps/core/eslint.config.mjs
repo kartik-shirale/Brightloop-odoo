@@ -4,7 +4,7 @@ import { baseConfigs, globals, tseslint } from "../../eslint.shared.mjs";
 // inside apps/core with the same rules as the repo root.
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "src/prisma/contract.d.ts"] },
+  { ignores: ["dist/**", "node_modules/**", "src/prisma/contract.d.ts", "migrations/snapshots/**"] },
 
   ...baseConfigs,
 
