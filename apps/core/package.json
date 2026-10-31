@@ -1,0 +1,31 @@
+{
+  "name": "@odoo/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "contract:emit": "prisma contract emit"
+  },
+  "dependencies": {
+    "@odoo/shared": "workspace:*",
+    "@prisma/orm-postgres": "^8.0.0-rc.22",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@prisma/cli-engine": "0.9.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "prisma": "^8.0.0-rc.29",
+    "rimraf": "^6.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
