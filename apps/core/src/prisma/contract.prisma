@@ -1,22 +1,719 @@
 // use prisma-8
+// Subscription Management System: full schema
+// Money: stored as integer paise (Int). 1 INR = 100 paise. Never store floats/decimals.
+// Rates/percentages: stored as integer basis points. 18% = 1800, 0.5% = 50.
+// Date-only fields (startDate, dueDate, etc.) use TimestamptzString to match the existing convention.
+
+// =====================================================================
+// ENUMS
+// =====================================================================
+
+enum Role {
+  CUSTOMER // portal user, sees only own data
+  STAFF // internal team, limited access
+  ADMIN // full control
+}
+
+enum ProductType {
+  SERVICE
+  SOFTWARE
+  ADDON
+  PHYSICAL
+}
+
+enum BillingPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum TaxType {
+  PERCENTAGE
+  FIXED
+}
+
+enum DiscountType {
+  FIXED
+  PERCENTAGE
+}
+
+enum DiscountScope {
+  PRODUCT // applies to specific products (see DiscountProduct)
+  SUBSCRIPTION // applies to whole subscriptions (see SubscriptionDiscount)
+}
+
+enum SubscriptionStatus {
+  DRAFT
+  QUOTATION
+  CONFIRMED
+  ACTIVE
+  PAUSED // only for plans with pausable = true
+  CLOSED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  CONFIRMED
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  UPI
+  CHEQUE
+  ONLINE
+  OTHER
+}
+
+enum BillingRunStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL // finished with some failures
+  FAILED
+}
+
+enum BillingRunItemStatus {
+  CREATED
+  SKIPPED // nothing due, or already billed for the period
+  FAILED
+}
+
+enum SequenceKey {
+  SUBSCRIPTION
+  INVOICE
+}
+
+// =====================================================================
+// AUTH & USERS
+// =====================================================================
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  posts     Post[]
+  id                Int                @id @default(autoincrement())
+  name              String
+  username          String?            @unique
+  email             String             @unique
+  passwordHash      String
+  role              Role               @default(CUSTOMER)
+  isActive          Boolean            @default(true) // staff can be deactivated without deleting
+  emailVerifiedAt   TimestamptzString?
+  passwordChangedAt TimestamptzString?
+  lastLoginAt       TimestamptzString?
+  deletedAt         TimestamptzString?
+  createdAt         TimestamptzString  @default(now())
+  updatedAt         TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  customer            Customer? // set when role = CUSTOMER
+
+  createdSubscriptions Subscription[]       @relation("SubscriptionCreatedBy")
+  createdInvoices      Invoice[]            @relation("InvoiceCreatedBy")
+  recordedPayments     Payment[]            @relation("PaymentRecordedBy")
+  createdProducts      Product[]            @relation("ProductCreatedBy")
+  createdPlans         Plan[]               @relation("PlanCreatedBy")
+  createdDiscounts     Discount[]           @relation("DiscountCreatedBy")
+  createdTemplates     QuotationTemplate[]  @relation("TemplateCreatedBy")
+  statusChanges        SubscriptionStatusHistory[] @relation("StatusChangedBy")
+  triggeredBillingRuns BillingRun[]         @relation("BillingRunTriggeredBy")
+  auditLogs            AuditLog[]
+
+  @@index([role])
+  @@index([deletedAt])
+  @@index([isActive])
+}
+
+model Session {
+  id               Int                @id @default(autoincrement())
+  userId           Int
+  currentTokenHash String             @unique
+  userAgent        String?
+  ip               String?
+  expiresAt        TimestamptzString
+  revokedAt        TimestamptzString?
+  lastUsedAt       TimestamptzString?
+  createdAt        TimestamptzString  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        Int                @id @default(autoincrement())
+  userId    Int
+  tokenHash String             @unique // store only the hash of the emailed token
+  expiresAt TimestamptzString
+  usedAt    TimestamptzString?
+  ip        String?
+  createdAt TimestamptzString  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =====================================================================
+// CUSTOMERS
+// A customer may exist without a portal login (created by staff);
+// userId links it to a User when the customer signs up / is invited.
+// =====================================================================
+
+model Customer {
+  id           Int                @id @default(autoincrement())
+  userId       Int?               @unique
+  name         String
+  companyName  String?
+  email        String
+  phone        String?
+  taxId        String? // GST / VAT number
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+  notes        String?
+  deletedAt    TimestamptzString?
+  createdAt    TimestamptzString  @default(now())
+  updatedAt    TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  user          User?          @relation(fields: [userId], references: [id])
+  subscriptions Subscription[]
+  invoices      Invoice[]
+  payments      Payment[]
+
+  @@index([email])
+  @@index([name])
+  @@index([deletedAt])
+}
+
+// =====================================================================
+// CATALOG: PRODUCTS, VARIANTS, PLANS
+// =====================================================================
+
+model Product {
+  id          Int                @id @default(autoincrement())
+  name        String
+  type        ProductType
+  salesPrice  Int // paise
+  costPrice   Int // paise
+  notes       String?
+  isActive    Boolean            @default(true)
+  createdById Int?
+  deletedAt   TimestamptzString?
+  createdAt   TimestamptzString  @default(now())
+  updatedAt   TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  createdBy User? @relation("ProductCreatedBy", fields: [createdById], references: [id])
+
+  variants          ProductVariant[]
+  templateLines     QuotationTemplateLine[]
+  subscriptionLines SubscriptionLine[]
+  invoiceLines      InvoiceLine[]
+  discountProducts  DiscountProduct[]
+
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+// Example: attribute = "Brand", value = "Odoo", extraPrice = 56000 (i.e. 560 INR)
+// Final unit price = Product.salesPrice + ProductVariant.extraPrice
+model ProductVariant {
+  id         Int                @id @default(autoincrement())
+  productId  Int
+  attribute  String
+  value      String
+  extraPrice Int            @default(0) // paise
+  isActive   Boolean            @default(true)
+  createdAt  TimestamptzString  @default(now())
+  updatedAt  TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  templateLines     QuotationTemplateLine[]
+  subscriptionLines SubscriptionLine[]
+  invoiceLines      InvoiceLine[]
+
+  @@unique([productId, attribute, value])
+  @@index([productId])
+}
+
+model Plan {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  price       Int // paise per billing period
+  billingPeriod BillingPeriod
+  minQuantity Int           @default(1)
+  availableFrom TimestamptzString
+  availableTo   TimestamptzString?
+
+  // Behaviour flags, decided by the admin per plan
+  autoClose    Boolean @default(false) // closes on its own when the end date arrives
+  closable     Boolean @default(false) // can be closed early
+  pausable     Boolean @default(false)
+  renewable    Boolean @default(false)
+
+  isActive    Boolean            @default(true)
+  createdById Int?
+  deletedAt   TimestamptzString?
+  createdAt   TimestamptzString  @default(now())
+  updatedAt   TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  createdBy User? @relation("PlanCreatedBy", fields: [createdById], references: [id])
+
+  templates     QuotationTemplate[]
+  subscriptions Subscription[]
+
+  @@index([billingPeriod])
+  @@index([isActive])
+  @@index([availableFrom, availableTo])
+  @@index([deletedAt])
+}
+
+// =====================================================================
+// TAXES, DISCOUNTS, PAYMENT TERMS
+// =====================================================================
+
+model Tax {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique // e.g. "GST 18%"
+  type      TaxType           @default(PERCENTAGE)
+  rate      Int            // PERCENTAGE: basis points (18% = 1800). FIXED: paise.
+  isActive  Boolean           @default(true)
   createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  subscriptionLines SubscriptionLine[]
+  invoiceLines      InvoiceLine[]
+}
+
+model Discount {
+  id          Int           @id @default(autoincrement())
+  name        String
+  code        String?       @unique
+  type        DiscountType
+  value       Int        // PERCENTAGE: basis points (10% = 1000). FIXED: paise.
+  scope       DiscountScope
+  minPurchase Int?       // minimum order amount, in paise
+  minQuantity Int? // minimum quantity
+  startDate   TimestamptzString
+  endDate     TimestamptzString?
+  usageLimit  Int? // null = unlimited
+  usedCount   Int           @default(0)
+  isActive    Boolean       @default(true)
+  createdById Int?
+  deletedAt   TimestamptzString?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  createdBy User? @relation("DiscountCreatedBy", fields: [createdById], references: [id])
+
+  products      DiscountProduct[] // used when scope = PRODUCT
+  subscriptions SubscriptionDiscount[] // used when scope = SUBSCRIPTION
+  usages        DiscountUsage[]
+  invoiceLines  InvoiceLine[]
+
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@index([deletedAt])
+}
+
+model DiscountProduct {
+  discountId Int
+  productId  Int
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, productId])
+  @@index([productId])
+}
+
+model SubscriptionDiscount {
+  discountId     Int
+  subscriptionId Int
+  createdAt      TimestamptzString @default(now())
+
+  discount     Discount     @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, subscriptionId])
+  @@index([subscriptionId])
+}
+
+// One row per discount applied to an invoice; drives usedCount and prevents double-use
+model DiscountUsage {
+  id             Int               @id @default(autoincrement())
+  discountId     Int
+  invoiceId      Int
+  subscriptionId Int
+  amount         Int // paise
+  createdAt      TimestamptzString @default(now())
+
+  discount     Discount     @relation(fields: [discountId], references: [id])
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([discountId, invoiceId])
+  @@index([invoiceId])
+  @@index([subscriptionId])
+}
+
+model PaymentTerm {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique // e.g. "Net 15"
+  dueDays   Int // days after invoice date
+  isDefault Boolean           @default(false)
+  isActive  Boolean           @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  subscriptions Subscription[]
+  invoices      Invoice[]
+}
+
+// =====================================================================
+// QUOTATION TEMPLATES
+// =====================================================================
+
+model QuotationTemplate {
+  id           Int                @id @default(autoincrement())
+  name         String
+  planId       Int
+  validityDays Int // how many days a quotation made from this stays valid
+  notes        String?
+  isActive     Boolean            @default(true)
+  createdById  Int?
+  deletedAt    TimestamptzString?
+  createdAt    TimestamptzString  @default(now())
+  updatedAt    TimestamptzString  @onCreate(now()) @onUpdate(now())
+
+  plan      Plan  @relation(fields: [planId], references: [id])
+  createdBy User? @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+
+  lines         QuotationTemplateLine[]
+  subscriptions Subscription[]
+
+  @@index([planId])
+  @@index([isActive])
+}
+
+model QuotationTemplateLine {
+  id         Int     @id @default(autoincrement())
+  templateId Int
+  productId  Int
+  variantId  Int?
+  quantity   Int     @default(1)
+  sortOrder  Int     @default(0)
+
+  template QuotationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  product  Product           @relation(fields: [productId], references: [id])
+  variant  ProductVariant?   @relation(fields: [variantId], references: [id])
+
+  @@index([templateId])
+  @@index([productId])
+}
+
+// =====================================================================
+// SUBSCRIPTIONS
+// =====================================================================
+
+model Subscription {
+  id            Int                @id @default(autoincrement())
+  number        String             @unique // auto-generated, e.g. SUB-2026-000123
+  customerId    Int
+  planId        Int
+  templateId    Int?
+  paymentTermId Int?
+  status        SubscriptionStatus @default(DRAFT)
+
+  startDate  TimestamptzString
+  expiryDate TimestamptzString?
+  quotationValidUntil TimestamptzString? // startDate-of-quotation + template.validityDays
+
+  // Billing schedule
+  nextBillingDate TimestamptzString? // drives the billing-day job
+  lastBilledUntil TimestamptzString? // end of the last billed period
+
+  // Lifecycle timestamps
+  confirmedAt TimestamptzString?
+  activatedAt TimestamptzString?
+  pausedAt    TimestamptzString?
+  closedAt    TimestamptzString?
+  closeReason String?
+  renewedFromId Int? // set when created by renewing another subscription
+
+  // Cached totals for fast list/report queries
+  subtotal      Int @default(0)
+  taxTotal      Int @default(0)
+  total         Int @default(0)
+  recurringAmount Int @default(0) // used for MRR/ARR style reporting
+
+  notes       String?
+  createdById Int?
+  deletedAt   TimestamptzString?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  customer    Customer           @relation(fields: [customerId], references: [id])
+  plan        Plan               @relation(fields: [planId], references: [id])
+  template    QuotationTemplate? @relation(fields: [templateId], references: [id])
+  paymentTerm PaymentTerm?       @relation(fields: [paymentTermId], references: [id])
+  createdBy   User?              @relation("SubscriptionCreatedBy", fields: [createdById], references: [id])
+  renewedFrom Subscription?      @relation("SubscriptionRenewal", fields: [renewedFromId], references: [id])
+
+  renewals       Subscription[]              @relation("SubscriptionRenewal")
+  lines          SubscriptionLine[]
+  statusHistory  SubscriptionStatusHistory[]
+  invoices       Invoice[]
+  discounts      SubscriptionDiscount[]
+  discountUsages DiscountUsage[]
+  billingRunItems BillingRunItem[]
+
+  @@index([status])
+  @@index([customerId])
+  @@index([planId])
+  @@index([nextBillingDate, status]) // billing-day lookup
+  @@index([expiryDate, status]) // auto-close job
+  @@index([startDate])
+  @@index([deletedAt])
+}
+
+model SubscriptionLine {
+  id             Int     @id @default(autoincrement())
+  subscriptionId Int
+  productId      Int
+  variantId      Int?
+  taxId          Int?
+  description    String?
+  quantity       Int
+  unitPrice      Int  // paise: product price + variant extra, frozen at creation
+  taxRate        Int @default(0) // snapshot of the tax rate (basis points)
+  taxAmount      Int @default(0)
+  amount         Int  // quantity * unitPrice, in paise (before tax)
+  sortOrder      Int     @default(0)
+
+  subscription Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id])
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+  tax          Tax?            @relation(fields: [taxId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([productId])
+}
+
+// Audit trail of status changes so anyone can see where a subscription stands and how it got there
+model SubscriptionStatusHistory {
+  id             Int                @id @default(autoincrement())
+  subscriptionId Int
+  fromStatus     SubscriptionStatus?
+  toStatus       SubscriptionStatus
+  changedById    Int?
+  reason         String?
+  createdAt      TimestamptzString  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  changedBy    User?        @relation("StatusChangedBy", fields: [changedById], references: [id])
+
+  @@index([subscriptionId])
+}
+
+// =====================================================================
+// INVOICES
+// =====================================================================
+
+model Invoice {
+  id             Int           @id @default(autoincrement())
+  number         String        @unique // e.g. INV-2026-000456
+  subscriptionId Int
+  customerId     Int
+  paymentTermId  Int?
+  status         InvoiceStatus @default(DRAFT)
+  currency       String        @default("INR")
+
+  // Billing period covered; unique per subscription so nothing is billed twice
+  periodStart TimestamptzString
+  periodEnd   TimestamptzString
+  issueDate   TimestamptzString
+  dueDate     TimestamptzString
+
+  // Customer snapshot at time of invoicing
+  customerName    String
+  customerEmail   String
+  customerTaxId   String?
+  billingAddress  String?
+
+  // Totals
+  subtotal      Int @default(0)
+  discountTotal Int @default(0)
+  taxTotal      Int @default(0)
+  total         Int @default(0)
+  amountPaid    Int @default(0)
+  amountDue     Int @default(0) // total - amountPaid, in paise
+
+  // Lifecycle
+  confirmedAt TimestamptzString?
+  sentAt      TimestamptzString?
+  paidAt      TimestamptzString?
+  cancelledAt TimestamptzString?
+  cancelReason String?
+
+  notes        String?
+  billingRunId Int?
+  createdById  Int? // null when generated by the scheduled job
+  createdAt    TimestamptzString @default(now())
+  updatedAt    TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  paymentTerm  PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+  billingRun   BillingRun?  @relation(fields: [billingRunId], references: [id])
+  createdBy    User?        @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+
+  lines            InvoiceLine[]
+  payments         Payment[]
+  discountUsages   DiscountUsage[]
+  billingRunItems  BillingRunItem[]
+
+  @@unique([subscriptionId, periodStart, periodEnd])
+  @@index([status])
+  @@index([customerId])
+  @@index([dueDate, status]) // overdue lookup
+  @@index([issueDate])
+  @@index([billingRunId])
+}
+
+model InvoiceLine {
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int
+  productId      Int?
+  variantId      Int?
+  taxId          Int?
+  discountId     Int?
+  description    String
+  quantity       Int
+  unitPrice      Int
+  discountAmount Int  @default(0)
+  taxRate        Int  @default(0)
+  taxAmount      Int  @default(0)
+  amount         Int   // paise: line total after discount, before tax
+  sortOrder      Int      @default(0)
+
+  invoice  Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product  Product?        @relation(fields: [productId], references: [id])
+  variant  ProductVariant? @relation(fields: [variantId], references: [id])
+  tax      Tax?            @relation(fields: [taxId], references: [id])
+  discount Discount?       @relation(fields: [discountId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+// =====================================================================
+// PAYMENTS
+// =====================================================================
+
+model Payment {
+  id           Int           @id @default(autoincrement())
+  invoiceId    Int
+  customerId   Int
+  method       PaymentMethod
+  amount       Int // paise
+  paymentDate  TimestamptzString
+  reference    String? // transaction id, cheque no., etc.
+  note         String?
+  recordedById Int?
+  createdAt    TimestamptzString @default(now())
+  updatedAt    TimestamptzString @onCreate(now()) @onUpdate(now())
+
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+  recordedBy User?    @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([paymentDate])
+  @@index([method])
+}
+
+// =====================================================================
+// BILLING AUTOMATION
+// =====================================================================
+
+// One row per execution of the billing-day job
+model BillingRun {
+  id            Int              @id @default(autoincrement())
+  runDate       TimestamptzString // the billing date being processed
+  status        BillingRunStatus @default(RUNNING)
+  triggeredById Int? // null when started by the scheduler
+  totalDue      Int              @default(0)
+  createdCount  Int              @default(0)
+  skippedCount  Int              @default(0)
+  failedCount   Int              @default(0)
+  startedAt     TimestamptzString @default(now())
+  finishedAt    TimestamptzString?
+
+  triggeredBy User? @relation("BillingRunTriggeredBy", fields: [triggeredById], references: [id])
+
+  invoices Invoice[]
+  items    BillingRunItem[]
+
+  @@index([runDate])
+  @@index([status])
+}
+
+model BillingRunItem {
+  id             Int                  @id @default(autoincrement())
+  billingRunId   Int
+  subscriptionId Int
+  invoiceId      Int?
+  status         BillingRunItemStatus
+  message        String? // reason for skip / failure
+  createdAt      TimestamptzString    @default(now())
+
+  billingRun   BillingRun   @relation(fields: [billingRunId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  invoice      Invoice?     @relation(fields: [invoiceId], references: [id])
+
+  @@unique([billingRunId, subscriptionId])
+  @@index([status])
+}
+
+// Gap-free, concurrency-safe numbering for subscriptions and invoices
+model NumberSequence {
+  key       SequenceKey @id
+  prefix    String // e.g. "SUB", "INV"
+  year      Int // reset per year if desired
+  lastValue Int         @default(0)
   updatedAt TimestamptzString @onCreate(now()) @onUpdate(now())
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
-  createdAt TimestamptzString @default(now())
-  updatedAt TimestamptzString @onCreate(now()) @onUpdate(now())
-}
+// =====================================================================
+// AUDIT
+// =====================================================================
 
+model AuditLog {
+  id         Int               @id @default(autoincrement())
+  userId     Int?
+  action     String // e.g. "invoice.confirm", "discount.create"
+  entityType String // e.g. "Invoice"
+  entityId   Int?
+  metadata   Json?
+  ip         String?
+  createdAt  TimestamptzString @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

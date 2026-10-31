@@ -7,14 +7,15 @@
     "shared"
   ],
   "scripts": {
-    "dev": "bun run --filter '@odoo/shared' build && concurrently -k -n shared,core,web \"bun run --filter @odoo/shared dev\" \"bun run --filter @odoo/core dev\" \"bun run --filter @odoo/web dev\"",
+    "dev": "bun run --filter '@brightloop/shared' build && concurrently -k -n shared,core,web \"bun run --filter @brightloop/shared dev\" \"bun run --filter @odoo/core dev\" \"bun run --filter @odoo/web dev\"",
     "dev:core": "bun run --filter '@odoo/core' dev",
     "dev:web": "bun run --filter '@odoo/web' dev",
-    "build": "bun run --filter '@odoo/shared' build && bun run --filter '*' build",
+    "build": "bun run --filter '@brightloop/shared' build && bun run --filter '*' build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "bun run --filter '@odoo/shared' build && bun run --filter '*' typecheck",
-    "clean": "bun run --filter '*' clean && rimraf node_modules"
+    "typecheck": "bun run --filter '@brightloop/shared' build && bun run --filter '*' typecheck",
+    "clean": "bun run --filter '*' clean && rimraf node_modules",
+    "test": "bun run --filter '@brightloop/shared' build && bun run --filter '@odoo/core' test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

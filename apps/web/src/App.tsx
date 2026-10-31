@@ -1,33 +1,39 @@
-import { useEffect, useState } from "react";
-import type { HealthResponse } from "@odoo/shared";
-
-export default function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-
-  useEffect(() => {
-    // Proxied to @odoo/core by Vite during development
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then(setHealth)
-      .catch(() => setHealth(null));
-  }, []);
-
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-950 text-gray-100">
-      <h1 className="text-4xl font-bold tracking-tight">odoo monorepo</h1>
-      <p className="text-gray-400">
-        React + Tailwind + Vite in <code className="text-emerald-400">@odoo/web</code>, Express in{" "}
-        <code className="text-emerald-400">@odoo/core</code>
-      </p>
-      {health ? (
-        <p className="rounded-lg bg-emerald-900/50 px-4 py-2 text-emerald-300">
-          core API is up ✅ ({new Date(health.timestamp).toLocaleTimeString()})
-        </p>
-      ) : (
-        <p className="rounded-lg bg-red-900/50 px-4 py-2 text-red-300">
-          core API not reachable — wait for it or start it separately
-        </p>
-      )}
-    </main>
-  );
+import { HomeRedirect } from '@/components/global/home-redirect';
+import { RoleGuard } from '@/components/global/role-guard';
+import { PortalLayout } from '@/components/layout/portal';
+import { STAFF_ROLES, CUSTOMER_ONLY } from '@/constants/roles';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
+import { ToastContainer } from 'react-toastify';
+import { AuthProvider } from '@/context/auth-context';
+import { AuthLayout } from '@/components/layout/auth';
+import { DashboardLayout } from '@/components/layout/dashboard';
+import { ProtectedRoute } from '@/components/global/protected-route';
+import { PageLoading } from '@/components/global/page-loading';
+import { ErrorFallback } from '@/components/global/error-fallback';
+import { ROUTES } from '@/constants/routes';
+const LoginPage = lazy(() => import('@/pages/auth/login'));
+const SignupPage = lazy(() => import('@/pages/auth/signup'));
+const VerifyOtpPage = lazy(() => import('@/pages/auth/verify-otp'));
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/forgot-password'));
+const PortalPage = lazy(() => import('@/pages/portal'));
+const DashboardPage = lazy(() => import('@/pages/dashboard'));
+const NotFoundPage = lazy(() => import('@/pages/not-found'));
+export function App(): React.JSX.Element {
+  return <ErrorBoundary FallbackComponent={ErrorFallback}><BrowserRouter><AuthProvider>
+    <Suspense fallback={<PageLoading />}><Routes>
+      <Route element={<AuthLayout />}>
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} /><Route path={ROUTES.SIGNUP} element={<SignupPage />} />
+        <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} /><Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+      </Route>
+      <Route element={<ProtectedRoute />}>
+        <Route path={ROUTES.HOME} element={<HomeRedirect />} />
+        <Route element={<RoleGuard roles={STAFF_ROLES} redirect />}><Route element={<DashboardLayout />}><Route path={ROUTES.DASHBOARD} element={<DashboardPage />} /></Route></Route>
+        <Route element={<RoleGuard roles={CUSTOMER_ONLY} redirect />}><Route element={<PortalLayout />}><Route path={ROUTES.PORTAL} element={<PortalPage />} /></Route></Route>
+      </Route>
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes></Suspense>
+    <ToastContainer position="top-right" autoClose={4000} closeOnClick theme="light" />
+  </AuthProvider></BrowserRouter></ErrorBoundary>;
 }
