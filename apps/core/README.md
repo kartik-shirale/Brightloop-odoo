@@ -28,18 +28,25 @@ the host port; also update `REDIS_URL` in the core environment if you change it.
 
 Supply both `ADMIN_EMAIL` and `ADMIN_PASSWORD` to seed a verified ADMIN account.
 The seed leaves existing accounts unchanged. Leave both blank to skip seeding.
-There is no public role selector; public signup always creates USER. Provision
-MANAGER accounts through your own administrative/database workflow.
+There is no public role selector; public signup always creates CUSTOMER. ADMIN
+and STAFF use the dashboard; CUSTOMER uses the portal shell. A staff-provisioning
+API is planned but is not implemented yet. New admin seed passwords must satisfy
+the shared password policy: at least 9 characters with uppercase, lowercase, and
+a special character, within the 72-byte bcrypt limit.
 
-The initial migration is in `migrations/app/20261031T0007_auth_foundation` and
-has been applied to the configured database. It creates the existing User,
-Session and Post models, including unique email, username and refresh-token
-hash constraints. `bun run db:verify` checks the marker and live schema.
+The migrations include `20261031T0007_auth_foundation` and
+`20261031T0447_brightloop_compatibility`. The compatibility migration maps
+USER/MANAGER roles to CUSTOMER/STAFF, adds account activation state, removes the
+old scaffold Post table, and creates the planned business-domain tables. Those
+tables do not implement the planned business APIs. Apply migrations separately
+in each environment. From `apps/core`, `bun run db:migrate` applies them and
+`bun run db:verify` checks the marker and live schema.
 For subsequent schema changes, run `bun run contract:emit`,
 `bun run migration:plan`, review the generated operations, then `bun run db:migrate`.
 
 Configure EmailJS to allow server-side API calls
-and enable private-key authorization. Template variables are `to_email`, `name`,
+and enable private-key authorization. Set the template To Email field to
+`{{to_email}}`. Template variables are `to_email`, `name`,
 `otp`, `expiry_minutes`, and `purpose`.
 
 ```sh
