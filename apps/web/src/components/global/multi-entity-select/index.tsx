@@ -1,0 +1,4 @@
+import { useResource } from '@/hooks/common/use-resource';
+import { read } from '@/lib/display';
+interface MultiEntitySelectProps {value:unknown;onChange:(value:number[])=>void;}
+export function MultiEntitySelect({value,onChange}:MultiEntitySelectProps):React.JSX.Element{const result=useResource<unknown[]>('/products','limit=100&isActive=true');const selected=Array.isArray(value)?value:[];return <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border p-3">{result.error&&<p className="text-destructive">{result.error}</p>}{result.data?.map(row=>{const id=Number(read(row,'id'));return <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected.includes(id)} onChange={e=>onChange(e.target.checked?[...selected.filter((v):v is number=>typeof v==='number'),id]:selected.filter((v):v is number=>typeof v==='number'&&v!==id))}/>{String(read(row,'name'))}</label>;})}{result.isLoading&&<p>Loading products…</p>}</div>;}
