@@ -25,7 +25,75 @@ export interface OtpMailer {
   }): Promise<void>;
 }
 
-export class EmailJsClient implements OtpMailer {
+/** Separate interface so invoice sending can be unit-tested with a fake mailer. */
+export interface InvoiceMailer {
+  sendInvoice(input: {
+    toEmail: string;
+    name: string;
+    invoiceNumber: string;
+    /** Display text such as `INR 1,234.56`. */
+    total: string;
+    dueDate: string;
+    portalUrl: string;
+  }): Promise<void>;
+}
+
+export class EmailJsClient implements OtpMailer, InvoiceMailer {
+  /** Sends the invoice summary mail; throws a 503 AppError so the caller can keep the invoice retryable. */
+  async sendInvoice(input: {
+    toEmail: string;
+    name: string;
+    invoiceNumber: string;
+    total: string;
+    dueDate: string;
+    portalUrl: string;
+  }): Promise<void> {
+    if (env.EMAILJS_INVOICE_TEMPLATE_ID === undefined) {
+      throw new AppError({ status: 503, code: 'EMAIL_DELIVERY_FAILED',
+        message: 'Invoice email is not configured (EMAILJS_INVOICE_TEMPLATE_ID is missing).' });
+    }
+    const payload = {
+      service_id: env.EMAILJS_SERVICE_ID,
+      template_id: env.EMAILJS_INVOICE_TEMPLATE_ID,
+      user_id: env.EMAILJS_PUBLIC_KEY,
+      accessToken: env.EMAILJS_PRIVATE_KEY,
+      template_params: {
+        to_email: input.toEmail,
+        name: input.name,
+        invoice_number: input.invoiceNumber,
+        total: input.total,
+        due_date: input.dueDate,
+        portal_url: input.portalUrl,
+      },
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(EMAILJS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (error) {
+      logger.error({ err: error, to: '[redacted]' }, 'emailjs invoice request failed');
+      throw new AppError({ status: 503, code: 'EMAIL_DELIVERY_FAILED',
+        message: 'Could not reach the email service. Please try again shortly.' });
+    }
+
+    if (!response.ok) {
+      const reasonText = await response.text();
+      const failure = classifyEmailFailure(response.status, reasonText);
+      logger.error({ providerStatus: response.status, reason: failure.reason }, 'EmailJS rejected the invoice send');
+      throw new AppError({ status: 503, code: 'EMAIL_DELIVERY_FAILED',
+        message: env.NODE_ENV === 'production' ? 'Could not send the invoice email. Please try again shortly.' : failure.action,
+        details: env.NODE_ENV === 'production' ? undefined : { providerStatus: response.status, reason: failure.reason },
+      });
+    }
+
+    logger.info({ invoiceNumber: input.invoiceNumber, to: '[redacted]' }, 'invoice email sent');
+  }
+
   /** Sends the OTP mail; throws a 503 AppError so the caller can decide policy. */
   async sendOtp(input: { toEmail: string; name: string; otp: string; expiryMinutes: number; kind: string }): Promise<void> {
     const purpose = input.kind === 'reset' ? 'reset your password' : 'verify your email';

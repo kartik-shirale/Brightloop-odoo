@@ -74,15 +74,26 @@ export interface SubscriptionListItemDto {
   allowedActions: SubscriptionAction[];
   lines?: SubscriptionLineDto[];
 }
+/** Attached discount as exposed by DiscountsGateway.listAttachedForSubscription. */
+export type SubscriptionDiscountDto = Pick<DiscountListItemDto, 'id' | 'name' | 'code' | 'type' | 'value' | 'scope'>;
+/** Lean invoice row for the subscription detail view. */
+export interface SubscriptionInvoiceSummaryDto {
+  id: number;
+  number: string;
+  status: InvoiceListItemDto['status'];
+  total: Paise;
+  issueDate: IsoDateTime;
+  dueDate: IsoDateTime;
+}
 export interface SubscriptionDto extends SubscriptionListItemDto {
   customer: CustomerRefDto;
   plan: PlanRefDto;
   paymentTerm: PaymentTermDto | null;
   lines: SubscriptionLineDto[];
   statusHistory: SubscriptionStatusHistoryDto[];
-  discounts: DiscountListItemDto[];
+  discounts: SubscriptionDiscountDto[];
   /** Most recent five; use the invoice list endpoint for the full history. */
-  invoices: InvoiceListItemDto[];
+  invoices: SubscriptionInvoiceSummaryDto[];
 }
 export interface CreateSubscriptionRequest {
   customerId: number;

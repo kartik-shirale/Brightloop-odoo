@@ -5,6 +5,7 @@ import { once } from 'node:events';
 import { promisify } from 'node:util';
 import type { AuthResult, ApiResponse, UserDto, ListMeta } from '@brightloop/shared';
 import { createApp } from '../../app.js';
+import type { AppServices } from '../../container.js';
 import { serviceUnavailable } from '../../core/errors.js';
 import { MemoryKvStore } from '../../config/redis.js';
 import type { UserRow, SessionRow } from '../../core/types/db-rows.js';
@@ -96,7 +97,7 @@ async function fixture(t: { after(fn: () => Promise<void>): void }, deliveryFail
     async updatePasswordAndRevokeOthers(id, hash, keep) { await repository.changePassword(id, hash, keep); },
     async revokeSessionForUser(id, sid) { if ((await repository.findSessionById(sid))?.userId === id) await repository.revokeSession(sid); },
   });
-  const { app } = createApp({ authRepository: repository, authService, otpService, usersRepository, usersService }, kv);
+  const { app } = createApp({ authRepository: repository, authService, otpService, usersRepository, usersService } satisfies Partial<AppServices> as unknown as AppServices, kv);
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   t.after(async () => { await promisify(server.close.bind(server))(); });
