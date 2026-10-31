@@ -9,6 +9,6 @@ export interface AuthContextValue {
   logout: () => Promise<void>;
   retrySession: () => void;
 }
-export interface ApiFailureDetail { field: string; message: string }
-export interface ApiFailure { message: string; status: number; code: string; details: ApiFailureDetail[]; retryAfter?: number }
+export type { ValidationErrorDetail as ApiFailureDetail } from '@brightloop/shared';
+export type { NormalizedApiError as ApiFailure } from '@/types/api';
 export type RecoveryStep = { kind: 'email' } | { kind: 'otp'; email: string } | { kind: 'reset'; email: string; resetToken: string };
