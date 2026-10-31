@@ -1,9 +1,9 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { API_ROUTES, type ApiError, type ApiResponse, type AuthResult } from '@brightloop/shared';
 import { CONFIG } from '@/constants/config';
-import { MESSAGES } from '@/constants/messages';
 import type { ApiFailure } from '@/types/auth';
 import { getSession, getSessionRevision, publishSession } from '@/api/session';
+import { normalizeApiError } from '@/lib/errors';
 
 const options = { baseURL: CONFIG.API_URL, timeout: CONFIG.REQUEST_TIMEOUT, withCredentials: true,
   headers: { 'Content-Type': 'application/json' } };
@@ -12,19 +12,7 @@ const refreshClient = axios.create(options);
 let refreshPromise: Promise<AuthResult> | null = null;
 
 export function normalizeError(error: unknown): ApiFailure {
-  if (!axios.isAxiosError<ApiError>(error)) return { message: MESSAGES.ERROR, status: 0, code: 'UNKNOWN', details: [] };
-  const response = error.response;
-  const body = response?.data;
-  const status = response?.status ?? 0;
-  const details = body?.error?.details;
-  const fields = Array.isArray(details) ? details.filter((item): item is { field: string; message: string } =>
-    typeof item === 'object' && item !== null && typeof item.field === 'string' && typeof item.message === 'string') : [];
-  let message = body?.message ?? MESSAGES.ERROR;
-  if (!response) message = MESSAGES.NETWORK;
-  if (status >= 500 && body?.error?.code !== 'EMAIL_DELIVERY_FAILED') message = 'The service is temporarily unavailable. Please try again shortly.';
-  if (status === 429 && !body?.message) message = MESSAGES.RETRY;
-  return { message, status, code: body?.error?.code ?? error.code ?? 'REQUEST_FAILED', details: fields,
-    retryAfter: Number(response?.headers['retry-after']) || undefined };
+  return normalizeApiError(error);
 }
 
 /** Shared by initial restoration and the 401 interceptor: only one rotation in flight. */
