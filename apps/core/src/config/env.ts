@@ -44,6 +44,16 @@ const envSchema = z.object({
   OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
   OTP_DAILY_LIMIT: z.coerce.number().int().positive().default(10),
 
+  /** IANA zone used to decide the business "today". Stored dates stay in UTC. */
+  APP_TIMEZONE: z.string().default('Asia/Kolkata').refine((zone) => {
+    try {
+      new Intl.DateTimeFormat('en-CA', { timeZone: zone });
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Expected a valid IANA time zone'),
+
   EMAILJS_SERVICE_ID: z.string().min(1),
   EMAILJS_TEMPLATE_ID: z.string().min(1),
   EMAILJS_PUBLIC_KEY: z.string().min(1),

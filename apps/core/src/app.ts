@@ -13,6 +13,7 @@ import { errorHandler, notFoundHandler } from './core/middlewares/error-handler.
 import { createRateLimiter } from './core/middlewares/rate-limit.js';
 import { requestContext } from './core/middlewares/request-context.js';
 import { getKvStore, type KvStore } from './config/redis.js';
+import { createAuditRouter } from './modules/audit/audit.routes.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
 import { createUsersRouter } from './modules/users/users.routes.js';
 import { buildServices, type AppServices } from './container.js';
@@ -50,6 +51,9 @@ export function createApp(services?: AppServices, kv: KvStore = getKvStore()): {
   v1.use('/auth', createAuthRouter({ authService: deps.authService, rateLimiter:
     createRateLimiter({ scope: 'otp', max: 30, windowSeconds: 900, store: kv }) }));
   v1.use('/users', createUsersRouter({ usersService: deps.usersService, authService: deps.authService }));
+  // --- module mounts ---
+  v1.use('/audit-logs', createAuditRouter({ authService: deps.authService, auditService: deps.auditService }));
+  // --- end module mounts ---
   app.use('/api/v1', v1);
 
   // ---- errors ----

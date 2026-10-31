@@ -5,9 +5,13 @@
 
 import { getKvStore } from './config/redis.js';
 import { EmailJsClient } from './core/mail/emailjs.js';
+import { AuditRepository } from './modules/audit/audit.repository.js';
+import { AuditService } from './modules/audit/audit.service.js';
 import { AuthRepository } from './modules/auth/auth.repository.js';
 import { AuthService } from './modules/auth/auth.service.js';
 import { OtpService } from './modules/auth/otp.service.js';
+import { SequencesRepository } from './modules/sequences/sequences.repository.js';
+import { SequencesService } from './modules/sequences/sequences.service.js';
 import { UsersRepository } from './modules/users/users.repository.js';
 import { UsersService, type AuthSessionGateway } from './modules/users/users.service.js';
 
@@ -17,6 +21,11 @@ export interface AppServices {
   readonly otpService: OtpService;
   readonly usersRepository: UsersRepository;
   readonly usersService: UsersService;
+  // --- module services: audit ---
+  readonly auditService: AuditService;
+  // --- module services: sequences ---
+  readonly sequencesService: SequencesService;
+  // --- end module services ---
 }
 
 /** Bridges users → auth without cross-module repository imports (rule #1). */
@@ -50,5 +59,11 @@ export function buildServices(): AppServices {
   const usersRepository = new UsersRepository();
   const usersService = new UsersService(usersRepository, new AuthSessionGatewayAdapter(authRepository));
 
-  return { authRepository, authService, otpService, usersRepository, usersService };
+  // --- module wiring: audit ---
+  const auditService = new AuditService(new AuditRepository());
+  // --- module wiring: sequences ---
+  const sequencesService = new SequencesService(new SequencesRepository());
+  // --- end module wiring ---
+
+  return { authRepository, authService, otpService, usersRepository, usersService, auditService, sequencesService };
 }

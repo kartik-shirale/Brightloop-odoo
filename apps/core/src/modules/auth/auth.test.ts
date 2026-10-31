@@ -4,6 +4,10 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { promisify } from 'node:util';
 import type { AuthResult, ApiResponse, UserDto, ListMeta } from '@brightloop/shared';
+import { AuditRepository } from '../audit/audit.repository.js';
+import { AuditService } from '../audit/audit.service.js';
+import { SequencesRepository } from '../sequences/sequences.repository.js';
+import { SequencesService } from '../sequences/sequences.service.js';
 import { createApp } from '../../app.js';
 import { serviceUnavailable } from '../../core/errors.js';
 import { MemoryKvStore } from '../../config/redis.js';
@@ -96,7 +100,7 @@ async function fixture(t: { after(fn: () => Promise<void>): void }, deliveryFail
     async updatePasswordAndRevokeOthers(id, hash, keep) { await repository.changePassword(id, hash, keep); },
     async revokeSessionForUser(id, sid) { if ((await repository.findSessionById(sid))?.userId === id) await repository.revokeSession(sid); },
   });
-  const { app } = createApp({ authRepository: repository, authService, otpService, usersRepository, usersService }, kv);
+  const { app } = createApp({ authRepository: repository, authService, otpService, usersRepository, usersService, auditService: new AuditService(new AuditRepository()), sequencesService: new SequencesService(new SequencesRepository()) }, kv);
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   t.after(async () => { await promisify(server.close.bind(server))(); });
