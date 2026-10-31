@@ -88,6 +88,17 @@ export function allocateProportionally(total: Paise, weights: readonly Paise[]):
   return shares;
 }
 
+/** Display text for paise using integer arithmetic only: 123456 -> '1,234.56'. */
+export function formatRupees(paise: Paise): string {
+  assertInteger(paise, 'amount');
+  const negative = paise < 0;
+  const absolute = Math.abs(paise);
+  const whole = Math.floor(absolute / 100);
+  const fraction = absolute - whole * 100;
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${negative ? '-' : ''}${grouped}.${String(fraction).padStart(2, '0')}`;
+}
+
 /** Recurring amount normalised to one month, integer paise (DAILY x30, WEEKLY x52/12, YEARLY /12). */
 export function monthlyEquivalent(amount: Paise, period: BillingPeriod): Paise {
   assertInteger(amount, 'amount');

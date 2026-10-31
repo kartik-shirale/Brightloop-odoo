@@ -51,18 +51,33 @@ export const alreadyBilled = (message = 'This billing period has already been in
 
 export type DbErrorKind = 'unique' | 'foreign-key' | 'not-found';
 
-function readCode(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null || !('code' in error)) return undefined;
-  const { code } = error as { code: unknown };
-  return typeof code === 'string' ? code : undefined;
+function readString(source: unknown, key: string): string | undefined {
+  if (typeof source !== 'object' || source === null || !(key in source)) return undefined;
+  const value = (source as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * The installed client raises `SqlQueryError` carrying the Postgres code in
+ * `sqlState` (verified against the database). `code` and `cause.code` are also
+ * read, for Prisma-style codes and wrapped driver errors.
+ */
+function readCodes(error: unknown): string[] {
+  const cause = typeof error === 'object' && error !== null && 'cause' in error
+    ? (error as { cause: unknown }).cause
+    : undefined;
+  return [
+    readString(error, 'sqlState'), readString(error, 'code'),
+    readString(cause, 'sqlState'), readString(cause, 'code'),
+  ].filter((code): code is string => code !== undefined);
 }
 
 /** Classifies a database failure by its Postgres or Prisma code, or returns undefined. */
 export function classifyDbError(error: unknown): DbErrorKind | undefined {
-  const code = readCode(error);
-  if (code === '23505' || code === 'P2002') return 'unique';
-  if (code === '23503' || code === 'P2003') return 'foreign-key';
-  if (code === 'P2025') return 'not-found';
+  const codes = readCodes(error);
+  if (codes.some((code) => code === '23505' || code === 'P2002')) return 'unique';
+  if (codes.some((code) => code === '23503' || code === 'P2003')) return 'foreign-key';
+  if (codes.includes('P2025')) return 'not-found';
   return undefined;
 }
 
