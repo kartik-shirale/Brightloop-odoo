@@ -15,7 +15,10 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "bun run --filter '@brightloop/shared' build && bun run --filter '*' typecheck",
     "clean": "bun run --filter '*' clean && rimraf node_modules",
-    "test": "bun run --filter '@brightloop/shared' build && bun run --filter '@odoo/core' test"
+    "test": "bun run --filter '@brightloop/shared' build && bun run --filter '@odoo/core' test",
+    "redis:up": "docker compose up -d --wait redis",
+    "redis:down": "docker compose stop redis",
+    "redis:logs": "docker compose logs -f redis"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
