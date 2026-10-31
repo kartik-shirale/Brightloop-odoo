@@ -3,19 +3,26 @@ import { env } from './config/env.js';
 import { prisma } from './config/prisma.js';
 import { closeKvStore, getKvStore } from './config/redis.js';
 import { createApp } from './app.js';
+import { startScheduler, stopScheduler } from './core/jobs/scheduler.js';
 import { logger } from './core/logger.js';
 import { seed } from './prisma/seed.js';
 
 async function main(): Promise<void> {
   await getKvStore().get('app:ready');
   await seed();
-  const { app } = createApp();
+  const { app, deps } = createApp();
   const server = app.listen(env.PORT, () => logger.info({ port: env.PORT }, 'Core listening'));
+  // Recovery, daily billing and lifecycle jobs (backend plan section 8). Null when disabled.
+  const scheduler = startScheduler({
+    billingRuns: deps.billingRunsService,
+    subscriptions: deps.subscriptionsService,
+  });
   let stopping = false;
   async function shutdown(reason: string, code = 0): Promise<void> {
     if (stopping) return;
     stopping = true;
     logger.info({ reason }, 'Shutting down');
+    stopScheduler(scheduler);
     const deadline = setTimeout(() => process.exit(1), 10000);
     deadline.unref();
     try {
