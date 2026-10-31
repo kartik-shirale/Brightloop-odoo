@@ -23,6 +23,17 @@ export function summarize(value: object): RecordSummary {
   : typeof company === 'string' ? company : undefined;
  return { ...(id !== undefined ? { id } : {}), label, ...(detail ? { detail } : {}) };
 }
+/** Statuses before activation: billing has not started, so there is no next billing date yet. */
+const PRE_ACTIVATION_STATUSES = new Set(['DRAFT', 'QUOTATION', 'CONFIRMED']);
+/**
+ * What to show instead of an empty next billing date on a subscription that is not active yet.
+ * Activation sets the date to the start date, so that is when billing will begin.
+ */
+export function pendingBillingNote(row: unknown): string | null {
+ if (read(row, 'nextBillingDate') != null || !PRE_ACTIVATION_STATUSES.has(String(read(row, 'status')))) return null;
+ const start = read(row, 'startDate');
+ return typeof start === 'string' ? `On activation (from ${formatDate(start)})` : 'On activation';
+}
 export function display(value: unknown, key = ''): string {
  if (value === null || value === undefined || value === '') return '—';
  if (typeof value === 'boolean') return value ? 'Yes' : 'No';

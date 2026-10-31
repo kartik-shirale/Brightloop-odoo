@@ -24,7 +24,7 @@ import { ResourceForm } from '@/components/forms/resource';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useWorkspace } from '@/hooks/workspace/use-workspace';
 import { useMutation } from '@/hooks/workspace/use-mutation';
-import { display,read,titleCase } from '@/lib/display';
+import { display,pendingBillingNote,read,titleCase } from '@/lib/display';
 import type { ResourceDefinition } from '@/types/workspace';
 import { Role } from '@/constants/roles';
 import { DEFAULT_LIMIT,PAGE_SIZE_OPTIONS } from '@/constants/pagination';
@@ -41,7 +41,8 @@ const HIDDEN_DETAIL_KEYS = new Set(['id','allowedActions','costPrice','password'
  */
 function detailEntries(data:unknown):[string,unknown][]{
  if(data===null||typeof data!=='object'||Array.isArray(data))return [];
- const entries=Object.entries(data).filter(([key,value])=>!Array.isArray(value)&&value!==null&&!HIDDEN_DETAIL_KEYS.has(key));
+ const billingNote=pendingBillingNote(data);
+ const entries=Object.entries(data).map(([key,value]):[string,unknown]=>key==='nextBillingDate'&&billingNote?[key,billingNote]:[key,value]).filter(([key,value])=>!Array.isArray(value)&&value!==null&&!HIDDEN_DETAIL_KEYS.has(key));
  const nested=new Set(entries.filter(([,value])=>typeof value==='object').map(([key])=>key));
  // Numeric *Id fields are internal references; text ids such as a customer's taxId stay.
  return entries.filter(([key,value])=>!(key.endsWith('Id')&&typeof value==='number')&&![...nested].some(parent=>key===`${parent}Name`));
