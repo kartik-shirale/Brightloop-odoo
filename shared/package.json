@@ -1,5 +1,5 @@
 {
-  "name": "@odoo/shared",
+  "name": "@brightloop/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,8 @@
     "dev": "tsc --watch -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.contracts.json",
+    "test": "tsc -p tsconfig.json && tsc -p tsconfig.contracts.json && node --test tests/schema.test.mjs",
     "clean": "rimraf dist"
   },
   "devDependencies": {
