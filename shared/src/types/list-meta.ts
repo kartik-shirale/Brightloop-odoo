@@ -1,8 +1,6 @@
-export interface ListMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
+/**
+ * Pagination envelope metadata shared by every list endpoint.
+ */
+
+/** Backward-compatible name used by the existing auth/users endpoints. */
+export type { PaginationMeta as ListMeta } from './common.js';
