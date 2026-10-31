@@ -51,8 +51,24 @@ export function createApp(services?: AppServices, kv: KvStore = getKvStore()): {
   v1.use('/auth', createAuthRouter({ authService: deps.authService, rateLimiter:
     createRateLimiter({ scope: 'otp', max: 30, windowSeconds: 900, store: kv }) }));
   v1.use('/users', createUsersRouter({ usersService: deps.usersService, authService: deps.authService }));
-  // --- module mounts ---
+  // --- module mounts (one line per module; owners uncomment their own line) ---
   v1.use('/audit-logs', createAuditRouter({ authService: deps.authService, auditService: deps.auditService }));
+  // M1 taxes:               v1.use('/taxes', createTaxesRouter({ authService: deps.authService, taxesService: deps.taxesService }));
+  // M2 payment-terms:       v1.use('/payment-terms', createPaymentTermsRouter({ authService: deps.authService, paymentTermsService: deps.paymentTermsService }));
+  // M3 products:            v1.use('/products', createProductsRouter({ authService: deps.authService, productsService: deps.productsService }));
+  // M4 staff:               v1.use('/staff', createStaffRouter({ authService: deps.authService, staffService: deps.staffService }));
+  // M5 customers:           v1.use('/customers', createCustomersRouter({ authService: deps.authService, customersService: deps.customersService }));
+  // M6 plans:               v1.use('/plans', createPlansRouter({ authService: deps.authService, plansService: deps.plansService }));
+  // M7 discounts:           v1.use('/discounts', createDiscountsRouter({ authService: deps.authService, discountsService: deps.discountsService }));
+  // M8 quotation-templates: v1.use('/quotation-templates', createQuotationTemplatesRouter({ authService: deps.authService, quotationTemplatesService: deps.quotationTemplatesService }));
+  // M9 subscriptions:       v1.use('/subscriptions', createSubscriptionsRouter({ authService: deps.authService, subscriptionsService: deps.subscriptionsService }));
+  // M10 invoices:           v1.use('/invoices', createInvoicesRouter({ authService: deps.authService, invoicesService: deps.invoicesService }));
+  // M12 payments:           v1.use('/payments', createPaymentsRouter({ authService: deps.authService, paymentsService: deps.paymentsService }));
+  // M11 billing-runs:       v1.use('/billing-runs', createBillingRunsRouter({ authService: deps.authService, billingRunsService: deps.billingRunsService }));
+  // M13 portal (owns /portal and /me, never mounted at '/'):
+  //   v1.use('/portal', createPortalRouter({ authService: deps.authService, portalService: deps.portalService }));
+  //   v1.use('/me', createPortalProfileRouter({ authService: deps.authService, portalService: deps.portalService }));
+  // M14 reports:            v1.use('/reports', createReportsRouter({ authService: deps.authService, reportsService: deps.reportsService }));
   // --- end module mounts ---
   app.use('/api/v1', v1);
 
