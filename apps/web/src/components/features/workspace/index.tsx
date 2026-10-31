@@ -11,6 +11,7 @@ import { Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription } from 
 import { NativeSelect } from '@/components/ui/native-select';
 import { Tabs,TabsList,TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/global/data-table';
+import { DetailValue } from '@/components/global/detail-value';
 import { DataPagination } from '@/components/global/data-pagination';
 import { EmptyState } from '@/components/global/empty-state';
 import { ListSkeleton } from '@/components/global/list-skeleton';
@@ -33,6 +34,18 @@ const INVOICE_ACTIONS:Record<string,ApiEndpoint> = { CONFIRM:'POST /api/v1/invoi
 const PORTAL_ACTIONS:Record<string,ApiEndpoint> = { PAUSE:'POST /api/v1/portal/subscriptions/:id/pause',RESUME:'POST /api/v1/portal/subscriptions/:id/resume',CLOSE:'POST /api/v1/portal/subscriptions/:id/close',RENEW:'POST /api/v1/portal/subscriptions/:id/renew' };
 /** Query keys that do not narrow the result set, so they never count as an active filter. */
 const NON_FILTER_KEYS = new Set(['tab','page','limit','sortBy','sortOrder']);
+const HIDDEN_DETAIL_KEYS = new Set(['id','allowedActions','costPrice','password']);
+/**
+ * Scalar fields plus nested records for the details grid. When a nested record is present
+ * (`customer`), its flat duplicates (`customerId`, `customerName`) are dropped.
+ */
+function detailEntries(data:unknown):[string,unknown][]{
+ if(data===null||typeof data!=='object'||Array.isArray(data))return [];
+ const entries=Object.entries(data).filter(([key,value])=>!Array.isArray(value)&&value!==null&&!HIDDEN_DETAIL_KEYS.has(key));
+ const nested=new Set(entries.filter(([,value])=>typeof value==='object').map(([key])=>key));
+ // Numeric *Id fields are internal references; text ids such as a customer's taxId stay.
+ return entries.filter(([key,value])=>!(key.endsWith('Id')&&typeof value==='number')&&![...nested].some(parent=>key===`${parent}Name`));
+}
 export function Workspace({definition:d,id,mode}:WorkspaceProps):React.JSX.Element {
  const workspace = useWorkspace(d,id); const {result,params,setFilter} = workspace; const {hasRole,user} = useAuth(); const navigate=useNavigate();
  const [pending,setPending] = useState<{endpoint:ApiEndpoint;label:string;reason?:boolean}|null>(null);const [reason,setReason]=useState('');
@@ -55,6 +68,7 @@ export function Workspace({definition:d,id,mode}:WorkspaceProps):React.JSX.Eleme
  const hasFilters=[...params.keys()].some(key=>!NON_FILTER_KEYS.has(key)&&params.get(key));
  const limit=Number(params.get('limit')??DEFAULT_LIMIT);
  const recordTitle=String(read(data,'name') ?? read(data,'number') ?? d.singular);
+ const detailFields=detailEntries(data);
  const showPagination=Boolean(result.meta&&result.meta.total>PAGE_SIZE_OPTIONS[0]);
  const emptyList=hasFilters
   ?<EmptyState icon={SearchX} title={`No matching ${d.title.toLowerCase()}`} description="Try a different search or clear the filters." actionLabel="Clear filters" onAction={()=>navigate(d.path)}/>
@@ -74,7 +88,7 @@ export function Workspace({definition:d,id,mode}:WorkspaceProps):React.JSX.Eleme
  {id&&(result.isLoading?<section className="rounded-md border p-4"><ListSkeleton variant="grid" rows={9}/></section>:!result.error&&<>
  <div className="flex flex-wrap items-center gap-2">{read(data,'status')!=null&&<Badge variant="outline" className="font-normal">{display(read(data,'status'))}</Badge>}{d.api==='/quotation-templates'&&<Button render={<Link to={`/subscriptions/from-template?templateId=${id}`}/>} nativeButton={false}>Create subscription</Button>}{actions.map(action=>{const endpoint=(d.api.startsWith('/portal')?PORTAL_ACTIONS:d.api==='/invoices'?INVOICE_ACTIONS:ACTIONS)[action];return endpoint?<Button key={action} variant="outline" disabled={mutation.busy} onClick={()=>setPending({endpoint,label:titleCase(action),reason:['CLOSE','CANCEL'].includes(action)})}>{titleCase(action)}</Button>:null;})}{d.api.includes('invoices')&&<Button variant="outline" onClick={()=>navigate(`${d.path}/${id}/print`)}><Printer className="text-muted-foreground"/>Print</Button>}{canDelete&&<Button variant="destructive" onClick={()=>{if(d.remove)setPending({endpoint:d.remove,label:'Delete record'});}}>Delete</Button>}</div>
  {arrays.length>0&&<Tabs value={tab} onValueChange={value=>chooseTab(String(value))}><TabsList variant="line">{['overview',...arrays.map(([key])=>key)].map(key=><TabsTrigger key={key} value={key}>{titleCase(key)}</TabsTrigger>)}</TabsList></Tabs>}
- {tab==='overview'||arrays.length===0?<section className="rounded-md border p-4"><dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{data!==null&&typeof data==='object'&&Object.entries(data).filter(([key,value])=>!Array.isArray(value)&&value!==null&&!['allowedActions','costPrice','password'].includes(key)).map(([key,value])=><div key={key} className="flex min-w-0 flex-col gap-1"><dt className="text-xs text-muted-foreground">{titleCase(key)}</dt><dd className="truncate text-sm">{display(value,key)}</dd></div>)}</dl></section>:arrays.filter(([key])=>key===tab).map(([key,value])=><section key={key} className="overflow-hidden rounded-md border"><DataTable rows={value as unknown[]} columns={Array.isArray(value)&&value[0]&&typeof value[0]==='object'?Object.keys(value[0]).filter(k=>!k.endsWith('Id')).slice(0,8):[]} empty={<EmptyState icon={Inbox} title={`No ${titleCase(key).toLowerCase()}`} description={`This ${d.singular.toLowerCase()} has no ${titleCase(key).toLowerCase()} yet.`}/>}/></section>)}
+ {tab==='overview'||arrays.length===0?<section className="rounded-md border p-4"><dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{detailFields.map(([key,value])=><div key={key} className="flex min-w-0 flex-col gap-1"><dt className="text-xs text-muted-foreground">{titleCase(key)}</dt><dd className="truncate text-sm"><DetailValue name={key} value={value} linkRecords={!d.api.startsWith('/portal')}/></dd></div>)}</dl></section>:arrays.filter(([key])=>key===tab).map(([key,value])=><section key={key} className="overflow-hidden rounded-md border"><DataTable rows={value as unknown[]} columns={Array.isArray(value)&&value[0]&&typeof value[0]==='object'?Object.keys(value[0]).filter(k=>!k.endsWith('Id')).slice(0,8):[]} empty={<EmptyState icon={Inbox} title={`No ${titleCase(key).toLowerCase()}`} description={`This ${d.singular.toLowerCase()} has no ${titleCase(key).toLowerCase()} yet.`}/>}/></section>)}
  {write&&<ResourceTools api={d.api} id={id} data={data} refetch={result.refetch}/>}
  <RelatedRecords api={d.api} id={id}/>
  </>)}

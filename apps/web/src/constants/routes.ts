@@ -95,3 +95,13 @@ export const ROUTES = {
   PORTAL_PAYMENTS: ROUTE_PATHS.PORTAL_PAYMENTS, PORTAL_PROFILE: ROUTE_PATHS.PORTAL_PROFILE,
   ACCOUNT: ROUTE_PATHS.ACCOUNT, PORTAL_SECURITY: ROUTE_PATHS.PORTAL_SECURITY,
 } as const;
+
+/** Staff detail page for a nested record key in an API response (`customer`, `plan`, ...). */
+export const RELATED_RECORD_ROUTES: Readonly<Partial<Record<string, (id: number) => string>>> = {
+  customer: ROUTES.CUSTOMERS.DETAIL,
+  plan: (id: number): string => recordRoute(ROUTE_PATHS.PLANS.DETAIL, id),
+  template: (id: number): string => recordRoute(ROUTE_PATHS.TEMPLATES.DETAIL, id),
+  product: (id: number): string => recordRoute(ROUTE_PATHS.PRODUCTS.DETAIL, id),
+  subscription: ROUTES.SUBSCRIPTIONS.DETAIL,
+  renewedFrom: ROUTES.SUBSCRIPTIONS.DETAIL,
+};
