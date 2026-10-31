@@ -6308,6 +6308,15 @@
                 },
                 {
                   "columns": [
+                    "customerId",
+                    "status"
+                  ],
+                  "name": "Invoice_customerId_status_idx_2986b558",
+                  "prefix": "Invoice_customerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "dueDate",
                     "status"
                   ],
@@ -6337,6 +6346,15 @@
                   ],
                   "name": "Invoice_status_idx_e98638ab",
                   "prefix": "Invoice_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status",
+                    "issueDate"
+                  ],
+                  "name": "Invoice_status_issueDate_idx_6b9a7042",
+                  "prefix": "Invoice_status_issueDate_idx",
                   "unique": false
                 },
                 {
@@ -8177,6 +8195,15 @@
                 },
                 {
                   "columns": [
+                    "customerId",
+                    "status"
+                  ],
+                  "name": "Subscription_customerId_status_idx_2986b558",
+                  "prefix": "Subscription_customerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "deletedAt"
                   ],
                   "name": "Subscription_deletedAt_idx_a39f721c",
@@ -9023,7 +9050,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b19135167b39385a703113bb2e1086ad575cc59a6243090883e2d05bcf170702"
+    "storageHash": "3a065292d6b8db87ba883fafc274779dcb077be21b01fdf300d75e1b4ab4df84"
   },
   "execution": {
     "executionHash": "c0a19e323fe68e1fd74ebdc53dfe4b24b25295afe71897c24811d1166874687c",

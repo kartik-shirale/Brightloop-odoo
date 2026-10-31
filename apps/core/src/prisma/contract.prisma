@@ -481,6 +481,7 @@ model Subscription {
 
   @@index([status])
   @@index([customerId])
+  @@index([customerId, status])
   @@index([planId])
   @@index([nextBillingDate, status]) // billing-day lookup
   @@index([expiryDate, status]) // auto-close job
@@ -587,6 +588,8 @@ model Invoice {
   @@unique([subscriptionId, periodStart, periodEnd])
   @@index([status])
   @@index([customerId])
+  @@index([customerId, status])
+  @@index([status, issueDate])
   @@index([dueDate, status]) // overdue lookup
   @@index([issueDate])
   @@index([billingRunId])

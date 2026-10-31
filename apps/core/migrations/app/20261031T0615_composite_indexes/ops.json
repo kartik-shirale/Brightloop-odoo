@@ -1,0 +1,146 @@
+[
+  {
+    "id": "index.Invoice.Invoice_customerId_status_idx_2986b558",
+    "label": "Create index \"Invoice_customerId_status_idx_2986b558\" on \"Invoice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Invoice_customerId_status_idx_2986b558",
+        "table": "Invoice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Invoice_customerId_status_idx_2986b558\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Invoice_customerId_status_idx_2986b558\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Invoice_customerId_status_idx_2986b558\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Invoice_customerId_status_idx_2986b558\"",
+        "sql": "CREATE INDEX \"Invoice_customerId_status_idx_2986b558\" ON \"public\".\"Invoice\" (\"customerId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Invoice_customerId_status_idx_2986b558\" exists on \"Invoice\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Invoice_customerId_status_idx_2986b558\"",
+          "i",
+          "I",
+          "\"public\".\"Invoice\"",
+          "btree",
+          "[\"customerId\",\"status\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Invoice.Invoice_status_issueDate_idx_6b9a7042",
+    "label": "Create index \"Invoice_status_issueDate_idx_6b9a7042\" on \"Invoice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Invoice_status_issueDate_idx_6b9a7042",
+        "table": "Invoice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Invoice_status_issueDate_idx_6b9a7042\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Invoice_status_issueDate_idx_6b9a7042\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Invoice_status_issueDate_idx_6b9a7042\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Invoice_status_issueDate_idx_6b9a7042\"",
+        "sql": "CREATE INDEX \"Invoice_status_issueDate_idx_6b9a7042\" ON \"public\".\"Invoice\" (\"status\", \"issueDate\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Invoice_status_issueDate_idx_6b9a7042\" exists on \"Invoice\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Invoice_status_issueDate_idx_6b9a7042\"",
+          "i",
+          "I",
+          "\"public\".\"Invoice\"",
+          "btree",
+          "[\"status\",\"issueDate\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Subscription.Subscription_customerId_status_idx_2986b558",
+    "label": "Create index \"Subscription_customerId_status_idx_2986b558\" on \"Subscription\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Subscription_customerId_status_idx_2986b558",
+        "table": "Subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Subscription_customerId_status_idx_2986b558\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Subscription_customerId_status_idx_2986b558\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Subscription_customerId_status_idx_2986b558\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Subscription_customerId_status_idx_2986b558\"",
+        "sql": "CREATE INDEX \"Subscription_customerId_status_idx_2986b558\" ON \"public\".\"Subscription\" (\"customerId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Subscription_customerId_status_idx_2986b558\" exists on \"Subscription\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Subscription_customerId_status_idx_2986b558\"",
+          "i",
+          "I",
+          "\"public\".\"Subscription\"",
+          "btree",
+          "[\"customerId\",\"status\"]"
+        ]
+      }
+    ]
+  }
+]

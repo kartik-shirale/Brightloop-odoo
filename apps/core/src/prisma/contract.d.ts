@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b19135167b39385a703113bb2e1086ad575cc59a6243090883e2d05bcf170702'>;
+  StorageHashBase<'3a065292d6b8db87ba883fafc274779dcb077be21b01fdf300d75e1b4ab4df84'>;
 export type ExecutionHash =
   ExecutionHashBase<'c0a19e323fe68e1fd74ebdc53dfe4b24b25295afe71897c24811d1166874687c'>;
 export type ProfileHash =
@@ -2072,6 +2072,12 @@ type ContractBase = Omit<
                   readonly unique: false;
                 },
                 {
+                  readonly name: 'Invoice_customerId_status_idx_2986b558';
+                  readonly prefix: 'Invoice_customerId_status_idx';
+                  readonly columns: readonly ['customerId', 'status'];
+                  readonly unique: false;
+                },
+                {
                   readonly name: 'Invoice_dueDate_status_idx_0be3fea6';
                   readonly prefix: 'Invoice_dueDate_status_idx';
                   readonly columns: readonly ['dueDate', 'status'];
@@ -2093,6 +2099,12 @@ type ContractBase = Omit<
                   readonly name: 'Invoice_status_idx_e98638ab';
                   readonly prefix: 'Invoice_status_idx';
                   readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Invoice_status_issueDate_idx_6b9a7042';
+                  readonly prefix: 'Invoice_status_issueDate_idx';
+                  readonly columns: readonly ['status', 'issueDate'];
                   readonly unique: false;
                 },
                 {
@@ -3632,6 +3644,12 @@ type ContractBase = Omit<
                   readonly name: 'Subscription_customerId_idx_b2a8a46c';
                   readonly prefix: 'Subscription_customerId_idx';
                   readonly columns: readonly ['customerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Subscription_customerId_status_idx_2986b558';
+                  readonly prefix: 'Subscription_customerId_status_idx';
+                  readonly columns: readonly ['customerId', 'status'];
                   readonly unique: false;
                 },
                 {
