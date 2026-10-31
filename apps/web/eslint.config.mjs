@@ -11,7 +11,7 @@ import {
 // NOTE: `files` globs are relative to this directory (apps/web).
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", ".vite/**"] },
+  { ignores: ["dist/**", "node_modules/**", ".vite/**", "test-results/**", "playwright-report/**"] },
 
   ...baseConfigs,
 

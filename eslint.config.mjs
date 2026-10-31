@@ -12,7 +12,7 @@ import {
 // patterns are relative to the directory ESLint runs in).
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "apps/web/.vite/**", "**/src/prisma/contract.d.ts"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "apps/web/.vite/**", "**/src/prisma/contract.d.ts", "**/migrations/snapshots/**", "**/test-results/**", "**/playwright-report/**"] },
 
   ...baseConfigs,
 
