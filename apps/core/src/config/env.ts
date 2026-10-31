@@ -69,6 +69,20 @@ const envSchema = z.object({
   COMPANY_ADDRESS: z.string().default(''),
   COMPANY_TAX_ID: z.string().default(''),
 
+  /** Billing runs and the in-process scheduler (backend plan sections M11 and 8). */
+  BILLING_SCHEDULER_ENABLED: z.preprocess(
+    (v) => v === '' ? undefined : v,
+    z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
+  ),
+  /** UTC hour (0 to 23) from which the scheduler starts the daily billing run. */
+  BILLING_RUN_HOUR_UTC: z.preprocess((v) => v === '' ? undefined : v, z.coerce.number().int().min(0).max(23).default(0)),
+  /** Subscriptions fetched per keyset batch during a billing run. */
+  BILLING_BATCH_SIZE: z.preprocess((v) => v === '' ? undefined : v, z.coerce.number().int().min(1).max(1000).default(100)),
+  /** Maximum overdue periods billed for one subscription in one run. */
+  BILLING_MAX_CATCHUP_PERIODS: z.preprocess((v) => v === '' ? undefined : v, z.coerce.number().int().min(1).max(120).default(12)),
+  /** A run still RUNNING after this many minutes is marked FAILED on startup. */
+  BILLING_STUCK_RUN_MINUTES: z.preprocess((v) => v === '' ? undefined : v, z.coerce.number().int().min(1).default(30)),
+
   /** Seed credentials for the default admin (role ADMIN, pre-verified). */
   ADMIN_EMAIL: z.preprocess((v) => v === '' ? undefined : v, z.email().toLowerCase().optional()),
   ADMIN_PASSWORD: z.preprocess((v) => v === '' ? undefined : v, z.string().min(8).optional()),

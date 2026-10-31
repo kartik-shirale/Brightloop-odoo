@@ -62,14 +62,24 @@ import { SubscriptionsRepository } from './modules/subscriptions/subscriptions.r
 import { SubscriptionsService } from './modules/subscriptions/subscriptions.service.js';
 // --- end module imports: subscriptions ---
 // --- module imports: invoices (M10) ---
+import { InvoicesRepository } from './modules/invoices/invoices.repository.js';
+import { InvoicesService } from './modules/invoices/invoices.service.js';
 // --- end module imports: invoices ---
 // --- module imports: payments (M12) ---
+import { PaymentsRepository } from './modules/payments/payments.repository.js';
+import { PaymentsService } from './modules/payments/payments.service.js';
 // --- end module imports: payments ---
 // --- module imports: billing-runs (M11) ---
+import { BillingRunsRepository } from './modules/billing-runs/billing-runs.repository.js';
+import { BillingRunsService } from './modules/billing-runs/billing-runs.service.js';
 // --- end module imports: billing-runs ---
 // --- module imports: portal (M13) ---
+import { PortalRepository } from './modules/portal/portal.repository.js';
+import { PortalService } from './modules/portal/portal.service.js';
 // --- end module imports: portal ---
 // --- module imports: reports (M14) ---
+import { ReportsRepository } from './modules/reports/reports.repository.js';
+import { ReportsService } from './modules/reports/reports.service.js';
 // --- end module imports: reports ---
 
 export interface AppServices {
@@ -112,14 +122,19 @@ export interface AppServices {
   readonly subscriptionsService: SubscriptionsService;
   // --- end module services: subscriptions ---
   // --- module services: invoices (M10) ---
+  readonly invoicesService: InvoicesService;
   // --- end module services: invoices ---
   // --- module services: payments (M12) ---
+  readonly paymentsService: PaymentsService;
   // --- end module services: payments ---
   // --- module services: billing-runs (M11) ---
+  readonly billingRunsService: BillingRunsService;
   // --- end module services: billing-runs ---
   // --- module services: portal (M13) ---
+  readonly portalService: PortalService;
   // --- end module services: portal ---
   // --- module services: reports (M14) ---
+  readonly reportsService: ReportsService;
   // --- end module services: reports ---
 }
 
@@ -199,14 +214,31 @@ export function buildServices(): AppServices {
   );
   // --- end module wiring: subscriptions ---
   // --- module wiring: invoices (M10) ---
+  const invoicesService = new InvoicesService(
+    new InvoicesRepository(),
+    subscriptionsService,
+    discountsService,
+    paymentTermsService,
+    customersService,
+    auditService,
+    mailer,
+  );
   // --- end module wiring: invoices ---
   // --- module wiring: payments (M12) ---
+  const paymentsService = new PaymentsService(new PaymentsRepository(), auditService);
   // --- end module wiring: payments ---
   // --- module wiring: billing-runs (M11) ---
+  const billingRunsService = new BillingRunsService(
+    new BillingRunsRepository(), invoicesService, subscriptionsService, auditService,
+  );
   // --- end module wiring: billing-runs ---
   // --- module wiring: portal (M13) ---
+  const portalService = new PortalService(
+    customersService, subscriptionsService, invoicesService, paymentsService, new PortalRepository(),
+  );
   // --- end module wiring: portal ---
   // --- module wiring: reports (M14) ---
+  const reportsService = new ReportsService(new ReportsRepository());
   // --- end module wiring: reports ---
 
   return {
@@ -249,14 +281,19 @@ export function buildServices(): AppServices {
     subscriptionsService,
     // --- end module services return: subscriptions ---
     // --- module services return: invoices (M10) ---
+    invoicesService,
     // --- end module services return: invoices ---
     // --- module services return: payments (M12) ---
+    paymentsService,
     // --- end module services return: payments ---
     // --- module services return: billing-runs (M11) ---
+    billingRunsService,
     // --- end module services return: billing-runs ---
     // --- module services return: portal (M13) ---
+    portalService,
     // --- end module services return: portal ---
     // --- module services return: reports (M14) ---
+    reportsService,
     // --- end module services return: reports ---
   };
 }

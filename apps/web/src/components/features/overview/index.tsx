@@ -1,25 +1,49 @@
-import { Link } from 'react-router-dom';
-import { ArrowUpRight,Plus,Repeat,Wallet,Activity } from 'lucide-react';
+import { Link,useNavigate } from 'react-router-dom';
+import { CalendarClock,CircleCheck,CreditCard,FileText,LineChart as LineChartIcon,Plus,RefreshCw,Repeat,UserPlus } from 'lucide-react';
 import type { ReportSummaryDto,PortalSummaryDto,RevenueTimeseriesDto } from '@brightloop/shared';
-import { Card,CardHeader,CardTitle,CardDescription,CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert,AlertDescription } from '@/components/ui/alert';
-import { ChartContainer,ChartTooltip,ChartTooltipContent } from '@/components/ui/chart';
-import { AreaChart,Area,CartesianGrid,XAxis } from 'recharts';
+import { ChartContainer,ChartLegend,ChartLegendContent,ChartTooltip,ChartTooltipContent,type ChartConfig } from '@/components/ui/chart';
+import { CartesianGrid,Line,LineChart,XAxis } from 'recharts';
 import { useResource } from '@/hooks/common/use-resource';
 import { formatPaise } from '@/lib/format';
 import { DataTable } from '@/components/global/data-table';
+import { EmptyState } from '@/components/global/empty-state';
+import { PageHeader } from '@/components/global/page-header';
+import { StatRow,type Stat } from '@/components/global/stat-row';
+import { StatsSkeleton } from '@/components/global/stats-skeleton';
+import { ChartSkeleton } from '@/components/global/chart-skeleton';
+import { TableSkeleton } from '@/components/global/table-skeleton';
+import { ROUTES } from '@/constants/routes';
 interface OverviewProps {portal?:boolean;}
+const revenueChart={invoiced:{label:'Invoiced',color:'var(--chart-1)'},received:{label:'Received',color:'var(--chart-2)'}} satisfies ChartConfig;
+const QUICK_ACTIONS=[{href:ROUTES.CUSTOMERS.NEW,label:'Add a customer',icon:UserPlus},{href:ROUTES.BILLING_RUNS.LIST,label:'Run billing',icon:RefreshCw},{href:ROUTES.INVOICES.LIST,label:'Record a payment',icon:CreditCard}] as const;
+const monthLabel=(value:unknown):string=>new Intl.DateTimeFormat('en-IN',{month:'short',year:'2-digit',timeZone:'UTC'}).format(new Date(String(value)));
+const money=(value:number|undefined):string=>value===undefined?'—':formatPaise(value);
 export function Overview({portal=false}:OverviewProps):React.JSX.Element {
+ const navigate=useNavigate();
  const summary=useResource<ReportSummaryDto & PortalSummaryDto>(portal?'/portal/summary':'/reports/summary');
  const revenue=useResource<RevenueTimeseriesDto>('/reports/revenue/timeseries','interval=month',!portal);
  const overdue=useResource<unknown[]>(portal?'/portal/invoices':'/reports/invoices/overdue','limit=5');
  const expiring=useResource<unknown[]>(portal?'/portal/subscriptions':'/reports/subscriptions/expiring','limit=5');
- const cards=portal?[['Active subscriptions',summary.data?.activeSubscriptions,false],['Outstanding balance',summary.data?.outstandingAmount,true],['Overdue invoices',summary.data?.overdueCount,false],['Overdue amount',summary.data?.overdueAmount,true]] as const:[['Active subscriptions',summary.data?.activeSubscriptions,false],['Monthly recurring revenue',summary.data?.mrr,true],['Revenue received',summary.data?.revenueReceived,true],['Outstanding balance',summary.data?.outstandingAmount,true]] as const;
- return <div className="space-y-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">Your business at a glance</p><h1 className="text-3xl font-semibold tracking-tight">{portal?'Your account':'Overview'}</h1><p className="mt-2 text-muted-foreground">{portal?'Everything you need to manage your subscriptions.':'A clear view of your recurring business.'}</p></div>{!portal&&<Link to="/subscriptions/new"><Button><Plus/>New subscription</Button></Link>}</div>
+ const s=summary.data;
+ const stats:Stat[]=portal
+  ?[{label:'Active subscriptions',value:s?.activeSubscriptions??'—'},{label:'Outstanding balance',value:money(s?.outstandingAmount)},{label:'Overdue invoices',value:s?.overdueCount??'—'},{label:'Overdue amount',value:money(s?.overdueAmount)}]
+  :[{label:'Active subscriptions',value:s?.activeSubscriptions??'—'},{label:'Monthly recurring revenue',value:money(s?.mrr)},{label:'Revenue received',value:money(s?.revenueReceived),meta:'This month'},{label:'Outstanding balance',value:money(s?.outstandingAmount)}];
+ const blocks=[
+  {title:portal?'Recent invoices':'Overdue invoices',result:overdue,path:portal?ROUTES.PORTAL_INVOICES.LIST:ROUTES.INVOICES.LIST,columns:['number','customerName','amountDue'],empty:portal?{icon:FileText,title:'No invoices yet',description:'Invoices appear here once they are issued.'}:{icon:CircleCheck,title:'No overdue invoices',description:'Every confirmed invoice is paid or not yet due.'}},
+  {title:portal?'Your subscriptions':'Upcoming renewals',result:expiring,path:portal?ROUTES.PORTAL_SUBSCRIPTIONS.LIST:ROUTES.SUBSCRIPTIONS.LIST,columns:['number','planName','expiryDate'],empty:portal?{icon:Repeat,title:'No subscriptions yet',description:'Your subscriptions appear here once they start.'}:{icon:CalendarClock,title:'No renewals coming up',description:'Subscriptions expiring in the next 30 days appear here.'}},
+ ];
+ return <>
+ <PageHeader title={portal?'Your account':'Overview'} actions={!portal&&<Button render={<Link to={ROUTES.SUBSCRIPTIONS.NEW}/>} nativeButton={false}><Plus/>New subscription</Button>}/>
  {summary.error&&<Alert variant="destructive"><AlertDescription>{summary.error}<Button variant="link" onClick={summary.refetch}>Retry</Button></AlertDescription></Alert>}
- <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label,value,money])=><Card key={label}><CardHeader className="flex-row items-center justify-between pb-2"><CardDescription>{label}</CardDescription><Activity className="size-4 text-muted-foreground"/></CardHeader><CardContent>{summary.isLoading?<Skeleton className="h-9 w-24"/>:<p className="text-3xl font-semibold tracking-tight">{value===undefined?'—':money?formatPaise(value):value}</p>}<p className="mt-3 text-xs text-muted-foreground">{portal?'Your account balance':'Current reporting period'}</p></CardContent></Card>)}</div>
- {!portal&&<div className="grid gap-6 lg:grid-cols-3"><Card className="lg:col-span-2"><CardHeader><CardTitle>Revenue over time</CardTitle><CardDescription>Invoiced and received revenue</CardDescription></CardHeader><CardContent>{revenue.isLoading?<Skeleton className="h-64"/>:revenue.error?<p className="text-sm text-destructive">{revenue.error}</p>:!revenue.data?.length?<div className="flex h-64 items-center justify-center text-muted-foreground">Your revenue history will appear here.</div>:<ChartContainer className="h-64 w-full" config={{invoiced:{label:'Invoiced',color:'var(--chart-1)'},received:{label:'Received',color:'var(--chart-2)'}}}><AreaChart data={revenue.data}><CartesianGrid vertical={false}/><XAxis dataKey="period" tickFormatter={v=>String(v).slice(0,7)}/><ChartTooltip content={<ChartTooltipContent formatter={v=>formatPaise(Number(v))}/>}/><Area dataKey="invoiced" fill="var(--color-invoiced)" stroke="var(--color-invoiced)"/><Area dataKey="received" fill="var(--color-received)" stroke="var(--color-received)"/></AreaChart></ChartContainer>}</CardContent></Card><Card><CardHeader><CardTitle>Quick actions</CardTitle><CardDescription>Keep your business moving</CardDescription></CardHeader><CardContent className="space-y-3">{[['/customers/new','Add a customer',Plus],['/billing-runs','Run billing',Repeat],['/invoices','Collect a payment',Wallet]].map(([path,label,Icon])=><Link key={String(path)} to={String(path)} className="flex items-center gap-3 rounded-lg border p-4 text-sm font-medium hover:bg-muted">{typeof Icon!=='string'&&<Icon className="size-4"/>}{String(label)}<ArrowUpRight className="ml-auto size-4"/></Link>)}</CardContent></Card></div>}
- <div className="grid gap-6 xl:grid-cols-2">{[{title:portal?'Recent invoices':'Overdue invoices',result:overdue,path:portal?'/portal/invoices':'/invoices',columns:['number','customerName','amountDue']},{title:portal?'Your subscriptions':'Upcoming renewals',result:expiring,path:portal?'/portal/subscriptions':'/subscriptions',columns:['number','planName','expiryDate']}].map(block=><Card key={block.title}><CardHeader className="flex-row items-center justify-between"><CardTitle>{block.title}</CardTitle><Link to={block.path} className="text-xs font-medium hover:underline">View all →</Link></CardHeader><CardContent>{block.result.isLoading?<Skeleton className="h-40"/>:block.result.error?<p className="text-sm text-destructive">{block.result.error}</p>:<DataTable rows={block.result.data??[]} columns={block.columns} base={block.path}/>}</CardContent></Card>)}</div></div>;
+ {summary.isLoading?<StatsSkeleton count={stats.length}/>:<StatRow stats={stats}/>}
+ {!portal&&<div className="grid gap-6 lg:grid-cols-3">
+  <section className="flex flex-col gap-3 lg:col-span-2"><div><h2 className="text-sm font-medium">Revenue</h2><p className="text-xs text-muted-foreground">Invoiced and received per month</p></div>
+  {revenue.isLoading?<ChartSkeleton/>:revenue.error?<p role="alert" className="text-sm text-destructive">{revenue.error}</p>:!revenue.data?.length?<div className="flex h-60 items-center justify-center rounded-md border"><EmptyState icon={LineChartIcon} title="No revenue yet" description="Revenue appears here after the first invoice is confirmed." actionLabel="Run billing" onAction={()=>navigate(ROUTES.BILLING_RUNS.LIST)}/></div>
+  :<ChartContainer config={revenueChart} className="h-60 w-full"><LineChart accessibilityLayer data={revenue.data} margin={{left:8,right:8}}><CartesianGrid vertical={false}/><XAxis dataKey="period" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={monthLabel}/><ChartTooltip content={<ChartTooltipContent labelFormatter={monthLabel} formatter={value=>formatPaise(Number(value))}/>}/><ChartLegend content={<ChartLegendContent/>}/><Line dataKey="invoiced" type="monotone" stroke="var(--color-invoiced)" strokeWidth={1.5} dot={false} isAnimationActive={false}/><Line dataKey="received" type="monotone" stroke="var(--color-received)" strokeWidth={1.5} dot={false} isAnimationActive={false}/></LineChart></ChartContainer>}</section>
+  <section className="flex flex-col gap-3"><h2 className="text-sm font-medium">Quick actions</h2><nav className="divide-y rounded-md border">{QUICK_ACTIONS.map(action=><Link key={action.href} to={action.href} className="flex h-10 items-center gap-2 px-4 text-sm hover:bg-muted"><action.icon className="size-4 text-muted-foreground"/>{action.label}</Link>)}</nav></section>
+ </div>}
+ <div className="grid gap-6 xl:grid-cols-2">{blocks.map(block=><section key={block.title} className="flex flex-col gap-3"><div className="flex items-center justify-between"><h2 className="text-sm font-medium">{block.title}</h2><Link to={block.path} className="text-xs text-muted-foreground hover:underline">View all</Link></div><div className="overflow-hidden rounded-md border">{block.result.isLoading?<TableSkeleton columns={block.columns.length} rows={5}/>:block.result.error?<p role="alert" className="p-4 text-sm text-destructive">{block.result.error}</p>:<DataTable rows={block.result.data??[]} columns={block.columns} base={block.path} empty={<EmptyState {...block.empty}/>}/>}</div></section>)}</div>
+ </>;
 }

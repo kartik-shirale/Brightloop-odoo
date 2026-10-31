@@ -36,7 +36,7 @@ export function OtpForm({ email, purpose, onVerified }: OtpFormProps): React.JSX
 
   const isBusy = verify.isLoading || resend.isLoading;
 
-  return <><FormHeading eyebrow="ONE SMALL STEP" title="Check your inbox." description={<>Enter the six-digit code sent to <span className="font-medium break-all text-foreground">{email}</span>. It expires in 5 minutes.</>} />
+  return <><FormHeading title="Verify your email" description={<>Enter the six-digit code sent to <span className="font-medium break-all text-foreground">{email}</span>. It expires in 5 minutes.</>} />
 
     <Form {...form}><form onSubmit={form.handleSubmit(verify.submit)} className="space-y-6" noValidate>
 
@@ -46,7 +46,7 @@ export function OtpForm({ email, purpose, onVerified }: OtpFormProps): React.JSX
 
           pattern={REGEXP_ONLY_DIGITS} autoComplete="one-time-code" inputMode="numeric" disabled={isBusy} containerClassName="w-full justify-between">
 
-          <InputOTPGroup className="w-full justify-between gap-2">{OTP_SLOTS.map((slot) => <InputOTPSlot key={slot} index={slot} className="size-12 rounded-lg border first:rounded-lg last:rounded-lg" />)}</InputOTPGroup>
+          <InputOTPGroup className="w-full justify-between gap-2">{OTP_SLOTS.map((slot) => <InputOTPSlot key={slot} index={slot} className="size-10 rounded-md border first:rounded-md last:rounded-md" />)}</InputOTPGroup>
 
         </InputOTP></FormControl><FormMessage />
 

@@ -23,6 +23,7 @@ export const ROUTE_PATHS = {
   PORTAL_SUBSCRIPTIONS: { LIST: '/portal/subscriptions', DETAIL: '/portal/subscriptions/:id' },
   PORTAL_INVOICES: { LIST: '/portal/invoices', DETAIL: '/portal/invoices/:id', PRINT: '/portal/invoices/:id/print' },
   PORTAL_PAYMENTS: '/portal/payments', PORTAL_PROFILE: '/portal/profile',
+  ACCOUNT: '/account', PORTAL_SECURITY: '/portal/security',
 } as const;
 
 function recordRoute(pattern: string, id: number): string {
@@ -92,4 +93,5 @@ export const ROUTES = {
     PRINT: (id: number): string => recordRoute(ROUTE_PATHS.PORTAL_INVOICES.PRINT, id),
   },
   PORTAL_PAYMENTS: ROUTE_PATHS.PORTAL_PAYMENTS, PORTAL_PROFILE: ROUTE_PATHS.PORTAL_PROFILE,
+  ACCOUNT: ROUTE_PATHS.ACCOUNT, PORTAL_SECURITY: ROUTE_PATHS.PORTAL_SECURITY,
 } as const;

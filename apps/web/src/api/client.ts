@@ -11,6 +11,11 @@ export const client = axios.create(options);
 const refreshClient = axios.create(options);
 let refreshPromise: Promise<AuthResult> | null = null;
 
+/** Resource paths are written without the version prefix (`/customers`); full `/api/...` paths pass through. */
+export function apiPath(path: string): string {
+  return path.startsWith('/api/') ? path : `${CONFIG.API_PREFIX}${path}`;
+}
+
 export function normalizeError(error: unknown): ApiFailure {
   return normalizeApiError(error);
 }

@@ -1,6 +1,6 @@
 import { Role, type CustomerDto, type CustomerListItemDto, type ListMeta } from '@brightloop/shared';
 import { forbidden, notFound } from '../../core/errors.js';
-import { isAdmin, isStaffOrAdmin, type Actor } from '../../core/utils/actor.js';
+import { isAdmin, isCustomer, isStaffOrAdmin, requireCustomerId, type Actor } from '../../core/utils/actor.js';
 import { classifyDbError, inUse, rethrowDbError } from '../../core/utils/domain-errors.js';
 import { listMetaFor } from '../../core/utils/pagination.js';
 import type { AuditGateway } from '../audit/audit.gateway.js';
@@ -13,6 +13,9 @@ import type { CreateCustomerInput, ListCustomersParams, UpdateCustomerInput } fr
 
 const NOT_FOUND = 'Customer not found';
 const LINK_CONFLICT = 'A customer is already linked to this user account';
+
+/** What a customer may change on their own profile: no email, no staff notes. */
+export type CustomerProfilePatch = Omit<UpdateCustomerInput, 'email' | 'notes'>;
 
 export class CustomersService implements CustomersGateway {
   constructor(
@@ -62,6 +65,35 @@ export class CustomersService implements CustomersGateway {
       metadata: { changes: patch, previous: pickPrevious(existing, patch) },
     });
     return this.detail(row);
+  }
+
+  /**
+   * Portal self-service edit (PATCH /me). CUSTOMER only; the customer id always comes from
+   * the actor. Email and notes cannot be changed here.
+   */
+  async updateOwnProfile(actor: Actor, patch: CustomerProfilePatch, ip?: string): Promise<CustomerRecord> {
+    if (!isCustomer(actor)) throw forbidden('Insufficient permissions');
+    const id = requireCustomerId(actor);
+    const existing = await this.requireCustomer(id);
+    const changes: CustomerProfilePatch = {
+      ...(patch.name !== undefined ? { name: patch.name } : {}),
+      ...(patch.companyName !== undefined ? { companyName: patch.companyName } : {}),
+      ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+      ...(patch.taxId !== undefined ? { taxId: patch.taxId } : {}),
+      ...(patch.addressLine1 !== undefined ? { addressLine1: patch.addressLine1 } : {}),
+      ...(patch.addressLine2 !== undefined ? { addressLine2: patch.addressLine2 } : {}),
+      ...(patch.city !== undefined ? { city: patch.city } : {}),
+      ...(patch.state !== undefined ? { state: patch.state } : {}),
+      ...(patch.postalCode !== undefined ? { postalCode: patch.postalCode } : {}),
+      ...(patch.country !== undefined ? { country: patch.country } : {}),
+    };
+    const row = await this.repository.update(id, changes);
+    if (row === null) throw notFound(NOT_FOUND);
+    await this.audit.record({
+      actor, action: 'customer.profile.update', entityType: 'Customer', entityId: id, ip,
+      metadata: { source: 'portal', changes, previous: pickPrevious(existing, changes) },
+    });
+    return toCustomerRecord(row);
   }
 
   /** Soft delete. Blocked while the customer has ACTIVE or PAUSED subscriptions or unpaid invoices. */
